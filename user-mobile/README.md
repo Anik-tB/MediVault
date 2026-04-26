@@ -67,6 +67,18 @@ npm install
 npm start
 ```
 
+## Dependency Note
+
+For this Expo project, do not use `npm audit fix --force`.
+It can upgrade Expo packages to unsupported versions and break the app.
+
+Use these instead:
+
+```bash
+npx expo install --check
+npx expo install --fix
+```
+
 ## Important folders
 
 - `app/`: screens and routes
