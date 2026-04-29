@@ -184,16 +184,24 @@ export function PrimaryButton({
   icon,
   onPress,
   style,
+  disabled,
 }: {
   label: string;
   icon?: ReactNode;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
+  disabled?: boolean;
 }) {
   return (
     <Pressable
+      disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [authStyles.primaryButton, style, pressed && authStyles.primaryButtonPressed]}>
+      style={({ pressed }) => [
+        authStyles.primaryButton,
+        style,
+        disabled && authStyles.buttonDisabled,
+        pressed && !disabled && authStyles.primaryButtonPressed,
+      ]}>
       <View style={authStyles.buttonInner}>
         {icon ? <View style={authStyles.buttonIcon}>{icon}</View> : null}
         <Text style={authStyles.primaryButtonText}>{label}</Text>
@@ -206,15 +214,22 @@ export function SecondaryButton({
   label,
   icon,
   onPress,
+  disabled,
 }: {
   label: string;
   icon?: ReactNode;
   onPress: () => void;
+  disabled?: boolean;
 }) {
   return (
     <Pressable
+      disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [authStyles.secondaryButton, pressed && authStyles.fieldPressed]}>
+      style={({ pressed }) => [
+        authStyles.secondaryButton,
+        disabled && authStyles.buttonDisabled,
+        pressed && !disabled && authStyles.fieldPressed,
+      ]}>
       <View style={authStyles.buttonInner}>
         {icon ? <View style={authStyles.buttonIcon}>{icon}</View> : null}
         <Text style={authStyles.secondaryButtonText}>{label}</Text>
@@ -508,6 +523,9 @@ export const authStyles = StyleSheet.create({
   },
   primaryButtonPressed: {
     backgroundColor: Palette.primaryPressed,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   secondaryButton: {
     alignItems: 'center',

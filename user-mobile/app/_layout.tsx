@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { Palette } from '@/constants/theme';
+import { AuthProvider } from '@/hooks/use-auth';
 
 export default function RootLayout() {
   const theme = {
@@ -19,18 +20,21 @@ export default function RootLayout() {
   };
 
   return (
-    <ThemeProvider value={theme}>
-      <Stack
-        screenOptions={{
-          animation: 'fade',
-          contentStyle: { backgroundColor: Palette.background },
-          headerShown: false,
-        }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="sign-up/index" />
-        <Stack.Screen name="sign-up/security" />
-      </Stack>
-      <StatusBar style="dark" />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider value={theme}>
+        <Stack
+          screenOptions={{
+            animation: 'fade',
+            contentStyle: { backgroundColor: Palette.background },
+            headerShown: false,
+          }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="home" />
+          <Stack.Screen name="sign-up/index" />
+          <Stack.Screen name="sign-up/security" />
+        </Stack>
+        <StatusBar style="dark" />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

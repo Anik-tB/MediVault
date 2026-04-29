@@ -14,14 +14,18 @@ Implemented now:
 - screen-to-screen navigation with Expo Router
 - custom mobile auth UI components
 - custom theme colors and auth layout styling
+- Firebase Auth setup with persistent mobile sessions
+- real sign in, sign up, sign out, and password reset
+- Google sign-in button wired to Firebase Auth
+- authenticated placeholder home screen
 
 Not connected yet:
 
 - backend API
-- real login/signup
-- forgot password flow
+- PostgreSQL profile sync
 - dropdown backend data
-- home/dashboard after login
+- full home/dashboard after login
+- PostgreSQL backend sync after Google sign-in
 
 ## Implemented Screens
 
@@ -38,8 +42,9 @@ Features:
 - email input
 - password input
 - show/hide password
-- forgot password link
-- sign in button
+- forgot password email flow
+- Firebase sign in
+- Google sign-in
 - create account link
 
 ### 2. Sign Up Step 1
@@ -56,7 +61,7 @@ Features:
 - student ID input
 - phone input
 - faculty/department selector
-- continue to security button
+- validation before step 2
 - sign in instead link
 
 ### 3. Sign Up Step 2
@@ -72,9 +77,22 @@ Features:
 - confirm password input
 - show/hide password
 - terms agreement checkbox
-- create account button
+- Firebase account creation
 - back button
 - sign in instead link
+
+### 4. Authenticated Home Placeholder
+
+File:
+
+- `app/home.tsx`
+
+Features:
+
+- redirects signed-in user after login/signup
+- shows current Firebase user email
+- sign out button
+- temporary placeholder until the real home screen is designed
 
 ## Shared UI Components
 
@@ -97,6 +115,8 @@ Main shared parts:
 - `ProfileSummaryCard`
 - `LegalCheckbox`
 
+Buttons now also support disabled states for loading flows.
+
 ## Routing Setup
 
 Main route setup:
@@ -106,8 +126,44 @@ Main route setup:
 Current routes:
 
 - `/` -> sign in
+- `/home` -> authenticated placeholder screen
 - `/sign-up` -> sign up step 1
 - `/sign-up/security` -> sign up step 2
+
+## Firebase Setup
+
+Firebase client setup lives here:
+
+- `services/firebase.ts`
+- `hooks/use-auth.tsx`
+
+Required local env file:
+
+- create `user-mobile/.env`
+- or create `user-mobile/.env.local`
+- copy values from `user-mobile/.env.example`
+- paste your Firebase Web app config values
+
+Required env keys:
+
+- `EXPO_PUBLIC_FIREBASE_API_KEY`
+- `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `EXPO_PUBLIC_FIREBASE_PROJECT_ID`
+- `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`
+- `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+- `EXPO_PUBLIC_FIREBASE_APP_ID`
+- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
+- `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`
+- `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
+
+Important:
+
+- use the Firebase Web app config for Expo
+- do not put the Firebase Admin SDK key inside `user-mobile`
+- after changing `.env`, restart Expo with `npx expo start --clear`
+- `.env.local` also works if you prefer keeping local secrets separate
+- Google sign-in also needs OAuth client IDs from your Firebase/Google Cloud project
+- Android Google sign-in needs a development build or native Android build, not Expo Go
 
 ## Theme and Styling
 
@@ -125,16 +181,26 @@ Added styling tokens for:
 - disabled states
 - button pressed state
 
-## Prototype Behavior
+## Current Auth Behavior
 
-This is currently frontend prototype behavior, not final business logic.
+This mobile app now uses Firebase Auth for the user authentication flow.
 
-Examples:
+Working now:
 
-- sign in button shows an alert
-- forgot password shows an alert
-- create account validates terms checkbox and password match
-- department field currently cycles through sample department values
+- email/password sign in
+- email/password sign up
+- Google sign in with Firebase credential exchange
+- auth session persistence with AsyncStorage
+- password reset email
+- redirect to `/home` after successful auth
+- sign out
+
+Still temporary:
+
+- step 1 signup details other than name/email are not saved yet
+- department field still cycles through sample values
+- no backend API or PostgreSQL sync yet
+- Google sign-in cannot be tested inside Expo Go
 
 ## Prerequisites
 
@@ -144,6 +210,8 @@ Before running the app, install:
 - Node.js LTS
 - npm
 - Expo Go on your Android phone
+- a Firebase project with Email/Password auth enabled
+- Google provider enabled in Firebase Authentication
 
 ## Teammate Setup
 
@@ -154,14 +222,23 @@ git clone <your-github-repo-url>
 cd MediVault
 cd user-mobile
 npm install
+copy .env.example .env
 npm start
 ```
+
+Then open `user-mobile/.env` and paste the Firebase Web app config values.
+You can use `.env.local` instead if you prefer.
 
 After `npm start`:
 
 - press `a` to open Android emulator
 - press `w` to open web preview
 - scan the QR code with Expo Go on your phone
+
+Important:
+
+- Email/password auth works in Expo Go
+- Google auth needs a development build on Android because OAuth redirects cannot be tested in Expo Go
 
 ## If New Changes Are Pulled
 
@@ -191,7 +268,7 @@ After making changes:
 
 ```bash
 git add .
-git commit -m "Add user mobile screen"
+git commit -m "Add user mobile feature"
 git push origin feature/your-feature-name
 ```
 
@@ -204,8 +281,16 @@ If the project is already cloned:
 ```bash
 cd user-mobile
 npm install
+copy .env.example .env
 npm start
 ```
+
+After that:
+
+1. Open `user-mobile/.env`
+2. Paste Firebase Web app config values
+3. Paste Google OAuth client IDs if you want Google login
+4. Restart Expo if it was already running
 
 ## Dependency Note
 
@@ -219,16 +304,20 @@ npx expo install --check
 npx expo install --fix
 ```
 
-## Important folders
+## Important Folders
 
 - `app/`: screens and routes
 - `components/`: reusable UI parts
 - `constants/`: theme, colors, config
+- `hooks/`: auth session state
+- `services/`: Firebase setup and helpers
 - `assets/`: images and icons
 
-## Current stack
+## Current Stack
 
 - Expo
 - React Native
 - TypeScript
 - Expo Router
+- Firebase Auth
+- AsyncStorage

@@ -1,7 +1,7 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, View } from 'react-native';
 
 import {
   AuthCard,
@@ -18,11 +18,13 @@ import {
   TextField,
 } from '@/components/auth/auth-ui';
 import { Palette } from '@/constants/theme';
+import { useAuth } from '@/hooks/use-auth';
 
 const departments = ['Psychology', 'Computer Science', 'Biology', 'Business Administration'];
 
 export default function SignUpInfoScreen() {
   const router = useRouter();
+  const { initializing, user } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [studentId, setStudentId] = useState('');
@@ -30,6 +32,33 @@ export default function SignUpInfoScreen() {
   const [departmentIndex, setDepartmentIndex] = useState<number | null>(null);
 
   const department = departmentIndex === null ? '' : departments[departmentIndex];
+
+  useEffect(() => {
+    if (!initializing && user) {
+      router.replace('/home');
+    }
+  }, [initializing, router, user]);
+
+  function handleContinue() {
+    if (!fullName.trim() || !email.trim() || !studentId.trim() || !department) {
+      Alert.alert(
+        'Missing information',
+        'Full name, email, student ID, and department are required.'
+      );
+      return;
+    }
+
+    router.push({
+      pathname: '/sign-up/security',
+      params: {
+        email: email.trim().toLowerCase(),
+        faculty: department,
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        studentId: studentId.trim().toUpperCase(),
+      },
+    });
+  }
 
   return (
     <AuthScaffold>
@@ -114,18 +143,7 @@ export default function SignUpInfoScreen() {
           <PrimaryButton
             icon={<Feather name="arrow-right" size={24} color={Palette.surface} />}
             label="Continue to Security"
-            onPress={() =>
-              router.push({
-                pathname: '/sign-up/security',
-                params: {
-                  email,
-                  faculty: department,
-                  fullName,
-                  phone,
-                  studentId,
-                },
-              })
-            }
+            onPress={handleContinue}
             style={{ marginTop: 12 }}
           />
         </View>

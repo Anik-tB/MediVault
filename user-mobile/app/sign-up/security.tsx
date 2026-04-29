@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
+import { createUserWithEmailAndPassword, updateProfile } from '@firebase/auth';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import {
@@ -20,6 +21,8 @@ import {
   TextField,
 } from '@/components/auth/auth-ui';
 import { Palette } from '@/constants/theme';
+import { useAuth } from '@/hooks/use-auth';
+import { formatFirebaseError, getFirebaseAuth } from '@/services/firebase';
 
 function readParam(value: string | string[] | undefined, fallback = '') {
   if (Array.isArray(value)) {
@@ -32,16 +35,68 @@ function readParam(value: string | string[] | undefined, fallback = '') {
 export default function SignUpSecurityScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { configError, hasFirebaseConfig, initializing, user } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  const fullName = readParam(params.fullName, 'Sayem');
-  const email = readParam(params.email, 'gahhy@gmail.com');
-  const faculty = readParam(params.faculty, 'Psychology');
-  const initial = fullName.charAt(0).toUpperCase() || 'S';
+  const fullName = readParam(params.fullName);
+  const email = readParam(params.email);
+  const faculty = readParam(params.faculty);
+  const displayName = fullName || 'Your profile';
+  const displaySubtitle = [email, faculty].filter(Boolean).join(' - ') || 'Complete step 1 first';
+  const initial = fullName.charAt(0).toUpperCase() || 'U';
+
+  useEffect(() => {
+    if (!initializing && user) {
+      router.replace('/home');
+    }
+  }, [initializing, router, user]);
+
+  async function handleCreateAccount() {
+    if (!hasFirebaseConfig) {
+      Alert.alert('Firebase config missing', configError ?? 'Firebase Auth is not configured yet.');
+      return;
+    }
+
+    if (!fullName || !email) {
+      Alert.alert('Missing details', 'Go back and complete step 1 before creating the account.');
+      return;
+    }
+
+    if (!acceptedTerms) {
+      Alert.alert('Terms required', 'Please agree to the terms before creating the account.');
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      Alert.alert('Weak password', 'Use a password with at least 6 characters.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Passwords do not match', 'Enter the same password in both fields.');
+      return;
+    }
+
+    try {
+      setIsCreatingAccount(true);
+      const result = await createUserWithEmailAndPassword(
+        getFirebaseAuth(),
+        email.trim().toLowerCase(),
+        password
+      );
+      await updateProfile(result.user, { displayName: fullName.trim() });
+      router.replace('/home');
+    } catch (error) {
+      Alert.alert('Account creation failed', formatFirebaseError(error));
+    } finally {
+      setIsCreatingAccount(false);
+    }
+  }
 
   return (
     <AuthScaffold>
@@ -56,12 +111,28 @@ export default function SignUpSecurityScreen() {
       <AuthCard>
         <ProfileSummaryCard
           initial={initial}
-          name={fullName}
+          name={displayName}
           onEdit={() => router.back()}
-          subtitle={`${email} - ${faculty}`}
+          subtitle={displaySubtitle}
         />
 
         <View style={{ gap: 18, marginTop: 16 }}>
+          {!hasFirebaseConfig ? (
+            <View
+              style={{
+                backgroundColor: '#FFF4E8',
+                borderColor: '#FFD7A8',
+                borderRadius: 20,
+                borderWidth: 1,
+                padding: 16,
+              }}>
+              <Text style={{ color: '#8A4C02', fontSize: 15, lineHeight: 22 }}>
+                Firebase is not configured yet. Add your values to `user-mobile/.env` or
+                `user-mobile/.env.local`, then restart Expo.
+              </Text>
+            </View>
+          ) : null}
+
           <View>
             <FieldLabel>PASSWORD *</FieldLabel>
             <TextField
@@ -128,30 +199,10 @@ export default function SignUpSecurityScreen() {
           </View>
 
           <PrimaryButton
+            disabled={isCreatingAccount}
             icon={<Feather name="user-plus" size={24} color={Palette.surface} />}
-            label="Create My Account"
-            onPress={() => {
-              if (!acceptedTerms) {
-                Alert.alert(
-                  'Terms required',
-                  'Please agree to the terms before creating the account.'
-                );
-                return;
-              }
-
-              if (password !== confirmPassword) {
-                Alert.alert(
-                  'Passwords do not match',
-                  'Enter the same password in both fields.'
-                );
-                return;
-              }
-
-              Alert.alert(
-                'Prototype ready',
-                'Frontend account flow is complete. Backend signup can be connected next.'
-              );
-            }}
+            label={isCreatingAccount ? 'Creating account...' : 'Create My Account'}
+            onPress={handleCreateAccount}
             style={{ marginTop: 6 }}
           />
 

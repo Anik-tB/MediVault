@@ -1,0 +1,21 @@
+{
+  "name": "medivault-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Express and PostgreSQL backend for MediVault",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "db:check": "node src/scripts/check-db.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
