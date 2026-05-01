@@ -1,323 +1,75 @@
-# MediVault User Mobile
-
-Expo React Native app for the user side of MediVault.
-
-## Current Status
-
-The mobile frontend has been converted from the default Expo starter into a custom auth flow based on the Figma prototype.
-
-Implemented now:
-
-- sign in screen
-- sign up step 1 screen
-- sign up step 2 security screen
-- screen-to-screen navigation with Expo Router
-- custom mobile auth UI components
-- custom theme colors and auth layout styling
-- Firebase Auth setup with persistent mobile sessions
-- real sign in, sign up, sign out, and password reset
-- Google sign-in button wired to Firebase Auth
-- authenticated placeholder home screen
-
-Not connected yet:
-
-- backend API
-- PostgreSQL profile sync
-- dropdown backend data
-- full home/dashboard after login
-- PostgreSQL backend sync after Google sign-in
-
-## Implemented Screens
-
-### 1. Sign In
-
-File:
-
-- `app/index.tsx`
-
-Features:
-
-- MediVault logo header
-- Patient / Student role banner
-- email input
-- password input
-- show/hide password
-- forgot password email flow
-- Firebase sign in
-- Google sign-in
-- create account link
-
-### 2. Sign Up Step 1
-
-File:
-
-- `app/sign-up/index.tsx`
-
-Features:
-
-- step progress indicator
-- full name input
-- email input
-- student ID input
-- phone input
-- faculty/department selector
-- validation before step 2
-- sign in instead link
-
-### 3. Sign Up Step 2
-
-File:
-
-- `app/sign-up/security.tsx`
-
-Features:
-
-- profile summary card
-- password input
-- confirm password input
-- show/hide password
-- terms agreement checkbox
-- Firebase account creation
-- back button
-- sign in instead link
-
-### 4. Authenticated Home Placeholder
-
-File:
-
-- `app/home.tsx`
-
-Features:
-
-- redirects signed-in user after login/signup
-- shows current Firebase user email
-- sign out button
-- temporary placeholder until the real home screen is designed
-
-## Shared UI Components
-
-Reusable auth components were created here:
-
-- `components/auth/auth-ui.tsx`
-
-Main shared parts:
-
-- `AuthScaffold`
-- `BrandHeader`
-- `RoleBanner`
-- `StepProgress`
-- `AuthCard`
-- `TextField`
-- `SelectField`
-- `PrimaryButton`
-- `SecondaryButton`
-- `FooterPrompt`
-- `ProfileSummaryCard`
-- `LegalCheckbox`
-
-Buttons now also support disabled states for loading flows.
-
-## Routing Setup
-
-Main route setup:
-
-- `app/_layout.tsx`
-
-Current routes:
-
-- `/` -> sign in
-- `/home` -> authenticated placeholder screen
-- `/sign-up` -> sign up step 1
-- `/sign-up/security` -> sign up step 2
-
-## Firebase Setup
-
-Firebase client setup lives here:
-
-- `services/firebase.ts`
-- `hooks/use-auth.tsx`
-
-Required local env file:
-
-- create `user-mobile/.env`
-- or create `user-mobile/.env.local`
-- copy values from `user-mobile/.env.example`
-- paste your Firebase Web app config values
-
-Required env keys:
-
-- `EXPO_PUBLIC_FIREBASE_API_KEY`
-- `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`
-- `EXPO_PUBLIC_FIREBASE_PROJECT_ID`
-- `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`
-- `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
-- `EXPO_PUBLIC_FIREBASE_APP_ID`
-- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
-- `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`
-- `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
-
-Important:
-
-- use the Firebase Web app config for Expo
-- do not put the Firebase Admin SDK key inside `user-mobile`
-- after changing `.env`, restart Expo with `npx expo start --clear`
-- `.env.local` also works if you prefer keeping local secrets separate
-- Google sign-in also needs OAuth client IDs from your Firebase/Google Cloud project
-- Android Google sign-in needs a development build or native Android build, not Expo Go
-
-## Theme and Styling
-
-Custom mobile palette is defined here:
-
-- `constants/theme.ts`
-
-Added styling tokens for:
-
-- background
-- surface cards
-- primary blue
-- text colors
-- borders
-- disabled states
-- button pressed state
-
-## Current Auth Behavior
-
-This mobile app now uses Firebase Auth for the user authentication flow.
-
-Working now:
-
-- email/password sign in
-- email/password sign up
-- Google sign in with Firebase credential exchange
-- auth session persistence with AsyncStorage
-- password reset email
-- redirect to `/home` after successful auth
-- sign out
-
-Still temporary:
-
-- step 1 signup details other than name/email are not saved yet
-- department field still cycles through sample values
-- no backend API or PostgreSQL sync yet
-- Google sign-in cannot be tested inside Expo Go
-
-## Prerequisites
-
-Before running the app, install:
-
-- Git
-- Node.js LTS
-- npm
-- Expo Go on your Android phone
-- a Firebase project with Email/Password auth enabled
-- Google provider enabled in Firebase Authentication
-
-## Teammate Setup
-
-If your teammate is joining from GitHub, use these steps:
-
+# MediVault Mobile Application 📱
+
+Welcome to the **MediVault** mobile app. This is a React Native application built with [Expo](https://expo.dev/) and [Expo Router](https://docs.expo.dev/router/introduction/). It serves as the primary interface for patients and customers to interact with the Local Dispensary Management system.
+
+---
+
+## 🛠 Tech Stack
+- **Framework:** React Native + Expo
+- **Routing:** Expo Router (File-based routing)
+- **Authentication:** Firebase Auth (Email/Password & Google Sign-In)
+- **Icons:** Expo Vector Icons (`Feather`)
+- **Animations:** React Native `Animated` API
+
+---
+
+## 📁 File Structure & Navigation
+
+The app uses **Expo Router**, meaning the folder structure inside the `app/` directory directly dictates the navigation URLs of the app.
+
+### `app/` (The Screens)
+- **`index.tsx`**: The main entry point. Displays the **Login** screen. Handles Google Sign-In (Web) and standard Email/Password login. If a user is already logged in, it redirects to the Dashboard.
+- **`sign-up/`**:
+  - **`index.tsx`**: Step 1 of the sign-up flow. Collects Full Name, Email, and Phone number.
+  - **`security.tsx`**: Step 2 of the sign-up flow. Collects the Password, validates terms, creates the Firebase profile, and silently syncs the new user to the PostgreSQL backend before redirecting to the Dashboard.
+- **`dashboard/`**:
+  - **`index.tsx`**: The main post-login experience. Integrates all dashboard components into a beautiful, scrollable interface with a custom sliding sidebar.
+
+### `components/` (Reusable UI)
+- **`auth/`**:
+  - **`auth-ui.tsx`**: A collection of highly styled, reusable UI blocks exclusively for the authentication screens (e.g., `TextField`, `PrimaryButton`, `AuthCard`, `StepProgress`).
+- **`dashboard/`**:
+  - Modular UI components that make up the Dashboard screen:
+    - `Sidebar.tsx`: Custom animated sliding drawer menu.
+    - `DashboardHeader.tsx`: Top app bar with avatar and notifications.
+    - `WelcomeBanner.tsx`: Dynamic greeting card showing active orders.
+    - `StatsGrid.tsx`: 2x2 grid displaying quick numerical statistics.
+    - `QuickActions.tsx`: Four primary action buttons.
+    - `RecentOrders.tsx`: List of recent transactions with status badges.
+
+### `services/` (Data & Logic)
+- **`firebase.ts`**: Initializes the Firebase app and exports the auth instance. Contains helper functions for Firebase error formatting.
+- **`api.ts`**: The Axios configuration connecting the mobile app to the Node.js Express backend. 
+  - *Important: Contains the `syncUserProfile` function which automatically runs after any successful login/signup to ensure PostgreSQL stays perfectly in sync with Firebase.*
+
+### `hooks/` & `constants/`
+- **`use-auth.ts`**: A global custom hook that listens to Firebase Authentication state changes in real-time.
+- **`theme.ts`**: Contains the `Palette` object, ensuring consistent colors across the entire application.
+
+---
+
+## 🚀 Running the App
+
+### 1. Configure Environment Variables
+You must have a `.env.local` file at the root of `user-mobile` with your Firebase credentials:
+```env
+EXPO_PUBLIC_FIREBASE_API_KEY="your-api-key"
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
+EXPO_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
+EXPO_PUBLIC_FIREBASE_APP_ID="your-app-id"
+```
+
+### 2. Configure Backend API URL
+Open `services/api.ts` and ensure the `API_URL` variable is set to your computer's local Wi-Fi IP address (e.g., `http://192.168.x.x:5000/api/v1`) so your physical mobile device can communicate with the local Node.js server.
+
+### 3. Install & Start
 ```bash
-git clone <your-github-repo-url>
-cd MediVault
-cd user-mobile
+# Install dependencies
 npm install
-copy .env.example .env
-npm start
+
+# Start the Expo development server
+npx expo start
 ```
-
-Then open `user-mobile/.env` and paste the Firebase Web app config values.
-You can use `.env.local` instead if you prefer.
-
-After `npm start`:
-
-- press `a` to open Android emulator
-- press `w` to open web preview
-- scan the QR code with Expo Go on your phone
-
-Important:
-
-- Email/password auth works in Expo Go
-- Google auth needs a development build on Android because OAuth redirects cannot be tested in Expo Go
-
-## If New Changes Are Pulled
-
-When your teammate pulls the latest code from GitHub, run this again inside `user-mobile`:
-
-```bash
-npm install
-```
-
-This is important when `package.json` or `package-lock.json` changes.
-
-If routes or types feel stale, run:
-
-```bash
-npx expo start --clear
-```
-
-## Simple Collaboration Workflow
-
-Use GitHub like this:
-
-```bash
-git checkout -b feature/your-feature-name
-```
-
-After making changes:
-
-```bash
-git add .
-git commit -m "Add user mobile feature"
-git push origin feature/your-feature-name
-```
-
-Then create a pull request on GitHub.
-
-## Run Locally
-
-If the project is already cloned:
-
-```bash
-cd user-mobile
-npm install
-copy .env.example .env
-npm start
-```
-
-After that:
-
-1. Open `user-mobile/.env`
-2. Paste Firebase Web app config values
-3. Paste Google OAuth client IDs if you want Google login
-4. Restart Expo if it was already running
-
-## Dependency Note
-
-For this Expo project, do not use `npm audit fix --force`.
-It can upgrade Expo packages to unsupported versions and break the app.
-
-Use these instead:
-
-```bash
-npx expo install --check
-npx expo install --fix
-```
-
-## Important Folders
-
-- `app/`: screens and routes
-- `components/`: reusable UI parts
-- `constants/`: theme, colors, config
-- `hooks/`: auth session state
-- `services/`: Firebase setup and helpers
-- `assets/`: images and icons
-
-## Current Stack
-
-- Expo
-- React Native
-- TypeScript
-- Expo Router
-- Firebase Auth
-- AsyncStorage
+Scan the QR code printed in the terminal using the **Expo Go** app on your physical iOS/Android device to test the application!

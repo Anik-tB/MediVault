@@ -23,6 +23,7 @@ import {
 import { Palette } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { formatFirebaseError, getFirebaseAuth } from '@/services/firebase';
+import { syncUserProfile } from '@/services/api';
 
 function readParam(value: string | string[] | undefined, fallback = '') {
   if (Array.isArray(value)) {
@@ -45,14 +46,14 @@ export default function SignUpSecurityScreen() {
 
   const fullName = readParam(params.fullName);
   const email = readParam(params.email);
-  const faculty = readParam(params.faculty);
   const displayName = fullName || 'Your profile';
-  const displaySubtitle = [email, faculty].filter(Boolean).join(' - ') || 'Complete step 1 first';
+  const displaySubtitle = email || 'Complete step 1 first';
   const initial = fullName.charAt(0).toUpperCase() || 'U';
 
   useEffect(() => {
     if (!initializing && user) {
-      router.replace('/home');
+      // @ts-ignore - Expo router types might not have updated yet
+      router.replace('/dashboard');
     }
   }, [initializing, router, user]);
 
@@ -90,7 +91,13 @@ export default function SignUpSecurityScreen() {
         password
       );
       await updateProfile(result.user, { displayName: fullName.trim() });
-      router.replace('/home');
+      try {
+        await syncUserProfile();
+      } catch (syncError) {
+        console.warn('Profile sync failed:', syncError);
+      }
+      // @ts-ignore - Expo router types might not have updated yet
+      router.replace('/dashboard');
     } catch (error) {
       Alert.alert('Account creation failed', formatFirebaseError(error));
     } finally {

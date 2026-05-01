@@ -4,6 +4,7 @@ import {
   sendPasswordResetEmail,
   signInWithCredential,
   signInWithEmailAndPassword,
+  signInWithPopup,
 } from '@firebase/auth';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Google from 'expo-auth-session/providers/google';
@@ -34,6 +35,7 @@ import {
   getMissingGoogleClientKeys,
   googleAuthConfig,
 } from '@/services/firebase';
+import { syncUserProfile } from '@/services/api';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -70,7 +72,8 @@ export default function SignInScreen() {
 
   useEffect(() => {
     if (!initializing && user) {
-      router.replace('/home');
+      // @ts-ignore - Expo router types might not have updated yet
+      router.replace('/dashboard');
     }
   }, [initializing, router, user]);
 
@@ -97,7 +100,8 @@ export default function SignInScreen() {
         const credential = GoogleAuthProvider.credential(idToken);
         await signInWithCredential(getFirebaseAuth(), credential);
         if (active) {
-          router.replace('/home');
+          // @ts-ignore - Expo router types might not have updated yet
+          router.replace('/dashboard');
         }
       } catch (error) {
         if (active) {
@@ -133,7 +137,13 @@ export default function SignInScreen() {
         email.trim().toLowerCase(),
         password
       );
-      router.replace('/home');
+      try {
+        await syncUserProfile();
+      } catch (syncError) {
+        console.warn('Profile sync failed:', syncError);
+      }
+      // @ts-ignore - Expo router types might not have updated yet
+      router.replace('/dashboard');
     } catch (error) {
       Alert.alert('Sign in failed', formatFirebaseError(error));
     } finally {
@@ -166,6 +176,26 @@ export default function SignInScreen() {
   async function handleGoogleSignIn() {
     if (!hasFirebaseConfig) {
       Alert.alert('Firebase config missing', configError ?? 'Firebase Auth is not configured yet.');
+      return;
+    }
+
+    if (Platform.OS === 'web') {
+      try {
+        setIsGoogleSigningIn(true);
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(getFirebaseAuth(), provider);
+        try {
+          await syncUserProfile();
+        } catch (syncError) {
+          console.warn('Profile sync failed:', syncError);
+        }
+        // @ts-ignore - Expo router types might not have updated yet
+        router.replace('/dashboard');
+      } catch (error) {
+        Alert.alert('Google sign in failed', formatFirebaseError(error));
+      } finally {
+        setIsGoogleSigningIn(false);
+      }
       return;
     }
 
