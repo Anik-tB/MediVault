@@ -6,9 +6,10 @@ import { useAuth } from '@/hooks/use-auth';
 
 interface DashboardHeaderProps {
   onOpenSidebar: () => void;
+  title?: string;
 }
 
-export function DashboardHeader({ onOpenSidebar }: DashboardHeaderProps) {
+export function DashboardHeader({ onOpenSidebar, title = 'Dashboard' }: DashboardHeaderProps) {
   const { user } = useAuth();
   const initial = user?.displayName?.charAt(0).toUpperCase() || 'U';
 
@@ -18,7 +19,7 @@ export function DashboardHeader({ onOpenSidebar }: DashboardHeaderProps) {
         <Pressable onPress={onOpenSidebar} style={styles.iconBtn}>
           <Feather name="menu" size={24} color={Palette.text} />
         </Pressable>
-        <Text style={styles.title}>Dashboard</Text>
+        <Text style={styles.title}>{title}</Text>
       </View>
       
       <View style={styles.right}>

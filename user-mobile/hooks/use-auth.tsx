@@ -2,6 +2,7 @@ import { onAuthStateChanged, signOut, User } from '@firebase/auth';
 import { createContext, PropsWithChildren, useContext, useEffect, useState } from 'react';
 
 import { firebaseConfigError, getFirebaseAuth, hasFirebaseConfig } from '@/services/firebase';
+import { syncUserProfile } from '@/services/api';
 
 type AuthContextValue = {
   user: User | null;
@@ -23,9 +24,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (nextUser) => {
+    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), async (nextUser) => {
       setUser(nextUser);
       setInitializing(false);
+
+      // Sync to PostgreSQL on every login (new session or app restart).
+      // Silently ignore sync errors so the app still works if the backend is down.
+      if (nextUser) {
+        try {
+          await syncUserProfile();
+        } catch {
+          // backend may not be running locally — that's fine, just skip
+        }
+      }
     });
 
     return unsubscribe;

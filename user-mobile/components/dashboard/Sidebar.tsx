@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Dimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useRouter, usePathname } from 'expo-router';
 import { Palette } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -14,6 +15,8 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
   const { user, signOutUser } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
 
   if (!isOpen) return null;
 
@@ -59,12 +62,22 @@ export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
         <Text style={styles.navHeader}>NAVIGATION</Text>
 
         <View style={styles.navLinks}>
-          <NavItem icon="grid" label="Dashboard" active />
-          <NavItem icon="search" label="Search Medicines" />
-          <NavItem icon="shopping-cart" label="My Cart" />
-          <NavItem icon="clock" label="My Orders" />
-          <NavItem icon="upload" label="Prescriptions" />
-          <NavItem icon="settings" label="Settings" />
+          <NavItem 
+            icon="grid" 
+            label="Dashboard" 
+            active={pathname === '/dashboard'} 
+            onPress={() => { router.push('/dashboard'); onClose(); }}
+          />
+          <NavItem 
+            icon="search" 
+            label="Search Medicines" 
+            active={pathname === '/search_medicine'}
+            onPress={() => { router.push('/search_medicine'); onClose(); }}
+          />
+          <NavItem icon="shopping-cart" label="My Cart" onPress={() => {}} />
+          <NavItem icon="clock" label="My Orders" onPress={() => {}} />
+          <NavItem icon="upload" label="Prescriptions" onPress={() => {}} />
+          <NavItem icon="settings" label="Settings" onPress={() => {}} />
         </View>
 
         <View style={{ flex: 1 }} />
@@ -94,9 +107,16 @@ export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
   );
 }
 
-function NavItem({ icon, label, active = false }: { icon: any; label: string; active?: boolean }) {
+interface NavItemProps {
+  icon: any; 
+  label: string; 
+  active?: boolean; 
+  onPress?: () => void;
+}
+
+function NavItem({ icon, label, active = false, onPress }: NavItemProps) {
   return (
-    <Pressable style={[styles.navItem, active && styles.navItemActive]}>
+    <Pressable style={[styles.navItem, active && styles.navItemActive]} onPress={onPress}>
       <Feather name={icon} size={20} color={active ? Palette.surface : '#94A3B8'} />
       <Text style={[styles.navItemText, active && styles.navItemTextActive]}>{label}</Text>
       {active && <Feather name="chevron-right" size={18} color={Palette.surface} style={{ marginLeft: 'auto' }} />}

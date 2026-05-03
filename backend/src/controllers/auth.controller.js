@@ -12,7 +12,7 @@ const syncProfile = async (req, res) => {
       ON CONFLICT (firebase_uid) 
       DO UPDATE SET 
         email = EXCLUDED.email,
-        full_name = COALESCE(users.full_name, EXCLUDED.full_name)
+        full_name = COALESCE(EXCLUDED.full_name, users.full_name)
       RETURNING id, firebase_uid, email, full_name, role, created_at;
     `;
 

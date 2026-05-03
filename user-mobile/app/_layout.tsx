@@ -29,7 +29,9 @@ export default function RootLayout() {
             headerShown: false,
           }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="home" />
+          <Stack.Screen name="login/index" />
+          <Stack.Screen name="dashboard/index" />
+          <Stack.Screen name="search_medicine/index" />
           <Stack.Screen name="sign-up/index" />
           <Stack.Screen name="sign-up/security" />
         </Stack>

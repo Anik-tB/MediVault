@@ -1,37 +1,40 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Palette } from '@/constants/theme';
 
 export function QuickActions() {
+  const router = useRouter();
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <Text style={styles.sectionSubtitle}>Common operations</Text>
 
       <View style={styles.buttonsList}>
-        <ActionButton 
-          icon="search" 
-          title="Search Medicines" 
-          subtitle="Browse formulary" 
+        <ActionButton
+          icon="search"
+          title="Search Medicines"
+          subtitle="Browse formulary"
           bgColor="#2563EB" // Blue
+          onPress={() => router.push('/search_medicine')}
         />
-        <ActionButton 
-          icon="shopping-cart" 
-          title="View My Cart" 
-          subtitle="0 item(s)" 
+        <ActionButton
+          icon="shopping-cart"
+          title="View My Cart"
+          subtitle="0 item(s)"
           bgColor="#0D9488" // Teal
         />
-        <ActionButton 
-          icon="upload" 
-          title="Upload Prescription" 
-          subtitle="Submit Rx document" 
+        <ActionButton
+          icon="upload"
+          title="Upload Prescription"
+          subtitle="Submit Rx document"
           bgColor="#8B5CF6" // Purple
         />
-        <ActionButton 
-          icon="clock" 
-          title="Order History" 
-          subtitle="4 total" 
+        <ActionButton
+          icon="clock"
+          title="Order History"
+          subtitle="4 total"
           bgColor="#334155" // Dark Gray
         />
       </View>
@@ -39,9 +42,12 @@ export function QuickActions() {
   );
 }
 
-function ActionButton({ icon, title, subtitle, bgColor }: any) {
+function ActionButton({ icon, title, subtitle, bgColor, onPress }: any) {
   return (
-    <Pressable style={[styles.actionBtn, { backgroundColor: bgColor }]}>
+    <Pressable
+      style={[styles.actionBtn, { backgroundColor: bgColor }]}
+      onPress={onPress}
+    >
       <Feather name={icon} size={22} color={Palette.surface} />
       <View style={styles.btnTextContainer}>
         <Text style={styles.btnTitle}>{title}</Text>
