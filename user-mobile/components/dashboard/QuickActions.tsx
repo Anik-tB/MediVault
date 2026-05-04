@@ -31,6 +31,7 @@ export function QuickActions() {
           title="Upload Prescription"
           subtitle="Submit Rx document"
           bgColor="#8B5CF6" // Purple
+          onPress={() => router.push('/prescriptions' as any)}
         />
         <ActionButton
           icon="clock"
