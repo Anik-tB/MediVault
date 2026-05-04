@@ -24,6 +24,7 @@ export function QuickActions() {
           title="View My Cart"
           subtitle="0 item(s)"
           bgColor="#0D9488" // Teal
+          onPress={() => router.push('/cart')}
         />
         <ActionButton
           icon="upload"

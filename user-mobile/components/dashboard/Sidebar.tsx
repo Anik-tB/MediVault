@@ -74,7 +74,12 @@ export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
             active={pathname === '/search_medicine'}
             onPress={() => { router.push('/search_medicine'); onClose(); }}
           />
-          <NavItem icon="shopping-cart" label="My Cart" onPress={() => {}} />
+          <NavItem 
+            icon="shopping-cart" 
+            label="My Cart" 
+            active={pathname === '/cart'}
+            onPress={() => { router.push('/cart'); onClose(); }} 
+          />
           <NavItem icon="clock" label="My Orders" onPress={() => {}} />
           <NavItem icon="upload" label="Prescriptions" onPress={() => {}} />
           <NavItem icon="settings" label="Settings" onPress={() => {}} />

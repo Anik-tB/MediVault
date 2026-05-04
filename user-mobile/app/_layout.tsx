@@ -32,6 +32,7 @@ export default function RootLayout() {
           <Stack.Screen name="login/index" />
           <Stack.Screen name="dashboard/index" />
           <Stack.Screen name="search_medicine/index" />
+          <Stack.Screen name="cart/index" />
           <Stack.Screen name="sign-up/index" />
           <Stack.Screen name="sign-up/security" />
         </Stack>
