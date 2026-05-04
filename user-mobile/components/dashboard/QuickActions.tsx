@@ -37,6 +37,7 @@ export function QuickActions() {
           title="Order History"
           subtitle="4 total"
           bgColor="#334155" // Dark Gray
+          onPress={() => router.push('/orders')}
         />
       </View>
     </View>

@@ -37,7 +37,7 @@ export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
             ],
           },
         ]}>
-        
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoRow}>
@@ -62,25 +62,30 @@ export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
         <Text style={styles.navHeader}>NAVIGATION</Text>
 
         <View style={styles.navLinks}>
-          <NavItem 
-            icon="grid" 
-            label="Dashboard" 
-            active={pathname === '/dashboard'} 
+          <NavItem
+            icon="grid"
+            label="Dashboard"
+            active={pathname === '/dashboard'}
             onPress={() => { router.push('/dashboard'); onClose(); }}
           />
-          <NavItem 
-            icon="search" 
-            label="Search Medicines" 
+          <NavItem
+            icon="search"
+            label="Search Medicines"
             active={pathname === '/search_medicine'}
             onPress={() => { router.push('/search_medicine'); onClose(); }}
           />
-          <NavItem 
-            icon="shopping-cart" 
-            label="My Cart" 
+          <NavItem
+            icon="shopping-cart"
+            label="My Cart"
             active={pathname === '/cart'}
-            onPress={() => { router.push('/cart'); onClose(); }} 
+            onPress={() => { router.push('/cart'); onClose(); }}
           />
-          <NavItem icon="clock" label="My Orders" onPress={() => {}} />
+          <NavItem
+            icon="clock"
+            label="My Orders"
+            active={pathname === '/orders'}
+            onPress={() => { router.push('/orders'); onClose(); }}
+          />
           <NavItem icon="upload" label="Prescriptions" onPress={() => {}} />
           <NavItem icon="settings" label="Settings" onPress={() => {}} />
         </View>
@@ -98,7 +103,7 @@ export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
               <Text style={styles.userEmail} numberOfLines={1}>{user?.email}</Text>
             </View>
           </View>
-          
+
           <Pressable style={styles.signOutBtn} onPress={signOutUser}>
             <Feather name="log-out" size={18} color="#94A3B8" />
             <Text style={styles.signOutText}>Sign Out</Text>
@@ -113,9 +118,9 @@ export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
 }
 
 interface NavItemProps {
-  icon: any; 
-  label: string; 
-  active?: boolean; 
+  icon: any;
+  label: string;
+  active?: boolean;
   onPress?: () => void;
 }
 
