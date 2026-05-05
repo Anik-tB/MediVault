@@ -37,6 +37,7 @@ export default function RootLayout() {
           <Stack.Screen name="prescriptions/index" />
           <Stack.Screen name="prescriptions/preview" />
           <Stack.Screen name="prescriptions/success" />
+          <Stack.Screen name="profile/index" />
           <Stack.Screen name="settings/index" />
           <Stack.Screen name="settings/appearance" />
           <Stack.Screen name="settings/notifications" />

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Palette } from '@/constants/theme';
 
 const MOCK_ORDERS = [
@@ -11,6 +12,8 @@ const MOCK_ORDERS = [
 ];
 
 export function RecentOrders() {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
@@ -18,7 +21,10 @@ export function RecentOrders() {
           <Text style={styles.sectionTitle}>My Recent Orders</Text>
           <Text style={styles.sectionSubtitle}>Your latest reservations</Text>
         </View>
-        <Pressable style={styles.viewAllBtn}>
+        <Pressable 
+          style={({ pressed }) => [styles.viewAllBtn, { opacity: pressed ? 0.7 : 1 }]} 
+          onPress={() => router.push('/orders')}
+        >
           <Text style={styles.viewAllText}>View all</Text>
           <Feather name="arrow-right" size={14} color="#2563EB" />
         </Pressable>

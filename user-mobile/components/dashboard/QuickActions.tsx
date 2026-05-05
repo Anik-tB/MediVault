@@ -48,7 +48,10 @@ export function QuickActions() {
 function ActionButton({ icon, title, subtitle, bgColor, onPress }: any) {
   return (
     <Pressable
-      style={[styles.actionBtn, { backgroundColor: bgColor }]}
+      style={({ pressed }) => [
+        styles.actionBtn, 
+        { backgroundColor: bgColor, opacity: pressed ? 0.8 : 1 }
+      ]}
       onPress={onPress}
     >
       <Feather name={icon} size={22} color={Palette.surface} />

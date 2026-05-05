@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'expo-router';
 
 interface DashboardHeaderProps {
   onOpenSidebar: () => void;
@@ -11,6 +12,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ onOpenSidebar, title = 'Dashboard' }: DashboardHeaderProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const initial = user?.displayName?.charAt(0).toUpperCase() || 'U';
 
   return (
@@ -21,15 +23,18 @@ export function DashboardHeader({ onOpenSidebar, title = 'Dashboard' }: Dashboar
         </Pressable>
         <Text style={styles.title}>{title}</Text>
       </View>
-      
+
       <View style={styles.right}>
         <Pressable style={styles.iconBtn}>
           <Feather name="bell" size={24} color={Palette.textSoft} />
           <View style={styles.badge} />
         </Pressable>
-        <View style={styles.avatar}>
+        <Pressable
+          style={({ pressed }) => [styles.avatar, { opacity: pressed ? 0.7 : 1 }]}
+          onPress={() => router.push('/profile' as any)}
+        >
           <Text style={styles.avatarText}>{initial}</Text>
-        </View>
+        </Pressable>
       </View>
     </View>
   );
