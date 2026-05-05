@@ -86,13 +86,18 @@ export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
             active={pathname === '/orders'}
             onPress={() => { router.push('/orders'); onClose(); }}
           />
-          <NavItem 
-            icon="upload" 
-            label="Prescriptions" 
+          <NavItem
+            icon="upload"
+            label="Prescriptions"
             active={pathname === '/prescriptions'}
-            onPress={() => { router.push('/prescriptions' as any); onClose(); }} 
+            onPress={() => { router.push('/prescriptions' as any); onClose(); }}
           />
-          <NavItem icon="settings" label="Settings" onPress={() => {}} />
+          <NavItem
+            icon="settings"
+            label="Settings"
+            active={pathname === '/settings'}
+            onPress={() => { router.push('/settings' as any); onClose(); }}
+          />
         </View>
 
         <View style={{ flex: 1 }} />
