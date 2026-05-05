@@ -33,6 +33,7 @@ export default function RootLayout() {
           <Stack.Screen name="dashboard/index" />
           <Stack.Screen name="search_medicine/index" />
           <Stack.Screen name="cart/index" />
+          <Stack.Screen name="notifications/index" />
           <Stack.Screen name="orders/index" />
           <Stack.Screen name="prescriptions/index" />
           <Stack.Screen name="prescriptions/preview" />

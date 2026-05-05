@@ -25,7 +25,10 @@ export function DashboardHeader({ onOpenSidebar, title = 'Dashboard' }: Dashboar
       </View>
 
       <View style={styles.right}>
-        <Pressable style={styles.iconBtn}>
+        <Pressable 
+          style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.7 : 1 }]}
+          onPress={() => router.push('/notifications' as any)}
+        >
           <Feather name="bell" size={24} color={Palette.textSoft} />
           <View style={styles.badge} />
         </Pressable>
