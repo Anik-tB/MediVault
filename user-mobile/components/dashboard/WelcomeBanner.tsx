@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'expo-router';
 
 export function WelcomeBanner() {
   const { user } = useAuth();
+  const router = useRouter();
   const firstName = user?.displayName?.split(' ')[0] || 'User';
 
   const today = new Date();
@@ -23,7 +25,10 @@ export function WelcomeBanner() {
         You have <Text style={styles.bold}>2 active order(s)</Text> and <Text style={styles.bold}>0 item(s)</Text> in your cart.
       </Text>
       
-      <Pressable style={styles.button}>
+      <Pressable 
+        style={({ pressed }) => [styles.button, { opacity: pressed ? 0.8 : 1 }]}
+        onPress={() => router.push('/search_medicine')}
+      >
         <Feather name="search" size={18} color="#2563EB" />
         <Text style={styles.buttonText}>Browse Medicines</Text>
       </Pressable>

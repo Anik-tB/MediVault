@@ -97,8 +97,11 @@ export default function NotificationsScreen() {
             </Text>
           </View>
           
-          <Pressable onPress={markAllAsRead} style={styles.markReadBtn}>
-            <Feather name="check-all" size={16} color="#2563EB" />
+          <Pressable 
+            onPress={markAllAsRead} 
+            style={({ pressed }) => [styles.markReadBtn, { opacity: pressed ? 0.7 : 1 }]}
+          >
+            <Feather name="check" size={16} color="#2563EB" />
             <Text style={styles.markReadText}>Mark all as read</Text>
           </Pressable>
         </View>
