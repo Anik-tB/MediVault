@@ -1,5 +1,90 @@
 const db = require('../config/db');
 
+// GET /api/v1/orders/:orderId — Fetch medicines for a specific order
+exports.getOrderDetails = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const user_id = req.user.firebase_uid;
+
+    // Verify the order belongs to this user, then fetch its items
+    const result = await db.query(
+      `SELECT oi.id, oi.medicine_name, oi.quantity, oi.medicine_id
+       FROM order_items oi
+       JOIN orders o ON o.id = oi.order_id
+       WHERE oi.order_id = $1 AND o.user_id = $2`,
+      [orderId, user_id]
+    );
+
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching order details:', error);
+    res.status(500).json({ error: 'Internal server error while fetching order details' });
+  }
+};
+
+// DELETE /api/v1/orders/:orderId — Cancel a pending order
+exports.cancelOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const user_id = req.user.firebase_uid;
+
+    // Only allow deletion if the order belongs to this user AND is still pending
+    const result = await db.query(
+      `DELETE FROM orders
+       WHERE id = $1 AND user_id = $2 AND status = 'pending_pickup'
+       RETURNING id`,
+      [orderId, user_id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(400).json({
+        error: 'Cannot cancel this order. It may already be prepared or does not belong to you.',
+      });
+    }
+
+    res.status(200).json({ message: 'Order cancelled successfully', order_id: orderId });
+  } catch (error) {
+    console.error('Error cancelling order:', error);
+    res.status(500).json({ error: 'Internal server error while cancelling order' });
+  }
+};
+
+// GET /api/v1/orders — Fetch user's order history with stats
+exports.getOrders = async (req, res) => {
+  try {
+    const user_id = req.user.firebase_uid;
+
+    // Fetch all orders with medicine count per order
+    const ordersResult = await db.query(
+      `SELECT 
+        o.id,
+        o.status,
+        o.created_at,
+        COUNT(oi.id) AS items_count
+       FROM orders o
+       LEFT JOIN order_items oi ON oi.order_id = o.id
+       WHERE o.user_id = $1
+       GROUP BY o.id
+       ORDER BY o.created_at DESC`,
+      [user_id]
+    );
+
+    // Compute stats
+    const orders = ordersResult.rows;
+    const stats = {
+      total: orders.length,
+      pending: orders.filter(o => o.status === 'pending_pickup').length,
+      ready: orders.filter(o => o.status === 'ready_for_pickup').length,
+      completed: orders.filter(o => o.status === 'completed').length,
+    };
+
+    res.status(200).json({ orders, stats });
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ error: 'Internal server error while fetching orders' });
+  }
+};
+
 // POST /api/v1/orders — Reserve for Pickup
 exports.reserveForPickup = async (req, res) => {
   const client = await db.pool.connect();
