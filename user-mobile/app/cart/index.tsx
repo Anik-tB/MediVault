@@ -6,6 +6,7 @@ import { Palette } from '@/constants/theme';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { getCartItems, updateCartQuantity, removeFromCart, clearCart } from '@/services/cart';
+import { reserveForPickup } from '@/services/orders';
 
 export default function CartScreen() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function CartScreen() {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isReserving, setIsReserving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const loadCart = async () => {
@@ -79,6 +82,21 @@ export default function CartScreen() {
   const handleClearCart = async () => {
     setCartItems([]);
     try { await clearCart(); } catch (err) { console.error(err); }
+  };
+
+  const handleReserveForPickup = async () => {
+    setIsReserving(true);
+    try {
+      const result = await reserveForPickup();
+      setCartItems([]);
+      setSuccessMsg(`Order #${result.order_id} reserved! Your pickup is confirmed.`);
+      setTimeout(() => setSuccessMsg(null), 5000);
+    } catch (err: any) {
+      setSuccessMsg(`Error: ${err.message}`);
+      setTimeout(() => setSuccessMsg(null), 6000);
+    } finally {
+      setIsReserving(false);
+    }
   };
 
   return (
@@ -221,9 +239,19 @@ export default function CartScreen() {
                 </View>
               )}
               
-              <Pressable style={styles.primaryButton}>
-                <Text style={styles.primaryButtonText}>Reserve for Pickup</Text>
-                <Feather name="arrow-right" size={18} color="#FFFFFF" />
+              <Pressable 
+                style={[styles.primaryButton, isReserving && { opacity: 0.7 }]}
+                onPress={handleReserveForPickup}
+                disabled={isReserving}
+              >
+                {isReserving ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <>
+                    <Text style={styles.primaryButtonText}>Reserve for Pickup</Text>
+                    <Feather name="arrow-right" size={18} color="#FFFFFF" />
+                  </>
+                )}
               </Pressable>
               
               <Pressable 
@@ -247,6 +275,14 @@ export default function CartScreen() {
           slideAnim={slideAnim} 
         />
       )}
+
+      {/* Reservation Toast */}
+      {successMsg && (
+        <View style={[styles.toast, successMsg.startsWith('Error') && styles.toastError]}>
+          <Feather name={successMsg.startsWith('Error') ? 'alert-circle' : 'check-circle'} size={18} color="#FFF" />
+          <Text style={styles.toastText}>{successMsg}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -255,6 +291,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Palette.background,
+  },
+  toast: {
+    position: 'absolute',
+    bottom: 40,
+    alignSelf: 'center',
+    backgroundColor: '#10B981',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 100,
+    maxWidth: '90%',
+  },
+  toastError: {
+    backgroundColor: '#EF4444',
+  },
+  toastText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
+    flexShrink: 1,
   },
   loadingContainer: {
     flex: 1,

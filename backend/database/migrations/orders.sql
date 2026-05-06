@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS orders (
+  id BIGSERIAL PRIMARY KEY,
+  user_id VARCHAR(128) NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'pending_pickup',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS order_items (
+  id BIGSERIAL PRIMARY KEY,
+  order_id BIGINT REFERENCES orders(id) ON DELETE CASCADE,
+  medicine_id BIGINT REFERENCES medicines(id) ON DELETE SET NULL,
+  medicine_name VARCHAR(255),
+  quantity INT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
