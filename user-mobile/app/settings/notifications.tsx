@@ -13,8 +13,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { DashboardHeader, Sidebar } from '@/components/dashboard/DashboardComponents';
 import { Palette } from '@/constants/theme';
 import {
   fetchUserSettings,

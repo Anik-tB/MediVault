@@ -14,8 +14,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { DashboardHeader, Sidebar } from '@/components/dashboard/DashboardComponents';
 import { Palette } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { fetchUserProfile, UserProfile } from '@/services/profile';

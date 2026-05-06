@@ -12,8 +12,7 @@ import {
 } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { DashboardHeader, Sidebar } from '@/components/dashboard/DashboardComponents';
 import { fetchMedicines } from '@/services/medicines';
 import { addToCart } from '@/services/cart';
 

@@ -1,75 +1,129 @@
-# MediVault Mobile Application 📱
+# MediVault User Mobile
 
-Welcome to the **MediVault** mobile app. This is a React Native application built with [Expo](https://expo.dev/) and [Expo Router](https://docs.expo.dev/router/introduction/). It serves as the primary interface for patients and customers to interact with the Local Dispensary Management system.
+This folder contains the Expo app used by patients/customers.
 
----
+## What The Mobile App Does
 
-## 🛠 Tech Stack
-- **Framework:** React Native + Expo
-- **Routing:** Expo Router (File-based routing)
-- **Authentication:** Firebase Auth (Email/Password & Google Sign-In)
-- **Icons:** Expo Vector Icons (`Feather`)
-- **Animations:** React Native `Animated` API
+- signs users in with Firebase Auth
+- registers new users
+- syncs the signed-in user into the backend
+- shows the dashboard
+- lists medicines
+- manages the cart
+- submits prescription records
+- reserves orders for pickup
+- shows order history
+- lets the user edit profile and settings
 
----
+## Folder Guide
 
-## 📁 File Structure & Navigation
+- `app/`
+  - Expo Router screens
+- `assets/`
+  - static app assets
+- `components/`
+  - reusable UI pieces
+- `constants/`
+  - shared constants such as theme colors
+- `hooks/`
+  - auth and theme hooks
+- `services/`
+  - Firebase and backend integration layer
+- `scripts/`
+  - Expo helper scripts
+- `.expo/`
+  - generated Expo metadata and cache
+- `.vscode/`
+  - local editor settings
 
-The app uses **Expo Router**, meaning the folder structure inside the `app/` directory directly dictates the navigation URLs of the app.
+## Screen Flow
 
-### `app/` (The Screens)
-- **`index.tsx`**: The main entry point. Displays the **Login** screen. Handles Google Sign-In (Web) and standard Email/Password login. If a user is already logged in, it redirects to the Dashboard.
-- **`sign-up/`**:
-  - **`index.tsx`**: Step 1 of the sign-up flow. Collects Full Name, Email, and Phone number.
-  - **`security.tsx`**: Step 2 of the sign-up flow. Collects the Password, validates terms, creates the Firebase profile, and silently syncs the new user to the PostgreSQL backend before redirecting to the Dashboard.
-- **`dashboard/`**:
-  - **`index.tsx`**: The main post-login experience. Integrates all dashboard components into a beautiful, scrollable interface with a custom sliding sidebar.
+- `app/index.tsx`
+  - redirects to login or dashboard depending on auth state
+- `app/login/`
+  - sign in, forgot password, and Google sign in entry
+- `app/sign-up/`
+  - 2-step registration flow
+- `app/dashboard/`
+  - dashboard summary and navigation hub
+- `app/search_medicine/`
+  - medicine discovery
+- `app/cart/`
+  - cart and reserve-for-pickup flow
+- `app/orders/`
+  - order history and details
+- `app/prescriptions/`
+  - prescription history, review, and success screens
+- `app/profile/`
+  - editable profile
+- `app/settings/`
+  - settings home, appearance, notifications, and security
+- `app/notifications/`
+  - notifications UI
+- `app/(tabs)/`
+  - leftover Expo template area, not the main MediVault route path
 
-### `components/` (Reusable UI)
-- **`auth/`**:
-  - **`auth-ui.tsx`**: A collection of highly styled, reusable UI blocks exclusively for the authentication screens (e.g., `TextField`, `PrimaryButton`, `AuthCard`, `StepProgress`).
-- **`dashboard/`**:
-  - Modular UI components that make up the Dashboard screen:
-    - `Sidebar.tsx`: Custom animated sliding drawer menu.
-    - `DashboardHeader.tsx`: Top app bar with avatar and notifications.
-    - `WelcomeBanner.tsx`: Dynamic greeting card showing active orders.
-    - `StatsGrid.tsx`: 2x2 grid displaying quick numerical statistics.
-    - `QuickActions.tsx`: Four primary action buttons.
-    - `RecentOrders.tsx`: List of recent transactions with status badges.
+## Component Folders
 
-### `services/` (Data & Logic)
-- **`firebase.ts`**: Initializes the Firebase app and exports the auth instance. Contains helper functions for Firebase error formatting.
-- **`api.ts`**: The Axios configuration connecting the mobile app to the Node.js Express backend. 
-  - *Important: Contains the `syncUserProfile` function which automatically runs after any successful login/signup to ensure PostgreSQL stays perfectly in sync with Firebase.*
+- `components/auth/`
+  - reusable auth UI like fields, cards, and buttons
+- `components/dashboard/DashboardComponents.tsx`
+  - unified file containing all dashboard UI pieces such as the header, sidebar, stats, and recent orders
+- `components/SharedUI.tsx`
+  - unified file containing generic cross-platform UI helpers (e.g., themed text, icons, collapsibles)
 
-### `hooks/` & `constants/`
-- **`use-auth.ts`**: A global custom hook that listens to Firebase Authentication state changes in real-time.
-- **`theme.ts`**: Contains the `Palette` object, ensuring consistent colors across the entire application.
+## Services
 
----
+- `services/firebase.ts`
+  - Firebase app/auth setup and env validation
+- `services/auth.ts`
+  - Firebase auth helpers
+- `services/api.ts`
+  - shared authenticated fetch helper and profile sync helper
+- `services/medicines.ts`
+  - medicine catalog API calls
+- `services/cart.ts`
+  - cart API calls
+- `services/orders.ts`
+  - order API calls
+- `services/prescriptions.ts`
+  - prescription API calls
+- `services/dashboard.ts`
+  - dashboard API calls
+- `services/profile.ts`
+  - profile and settings API calls
 
-## 🚀 Running the App
+## Important Local Setup
 
-### 1. Configure Environment Variables
-You must have a `.env.local` file at the root of `user-mobile` with your Firebase credentials:
-```env
-EXPO_PUBLIC_FIREBASE_API_KEY="your-api-key"
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
-EXPO_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
-EXPO_PUBLIC_FIREBASE_APP_ID="your-app-id"
-```
+Create `user-mobile/.env.local` from `.env.example` and fill in your Firebase values.
 
-### 2. Configure Backend API URL
-Open `services/api.ts` and ensure the `API_URL` variable is set to your computer's local Wi-Fi IP address (e.g., `http://192.168.x.x:5000/api/v1`) so your physical mobile device can communicate with the local Node.js server.
+Install dependencies:
 
-### 3. Install & Start
 ```bash
-# Install dependencies
+cd user-mobile
 npm install
-
-# Start the Expo development server
-npx expo start
 ```
-Scan the QR code printed in the terminal using the **Expo Go** app on your physical iOS/Android device to test the application!
+
+Start Expo:
+
+```bash
+npm run start
+```
+
+## Important Networking Note
+
+The backend IP is not fully centralized yet.
+
+If you run the backend on your laptop and test on a physical phone, update the local IP in:
+
+- `services/api.ts`
+- `services/medicines.ts`
+- `services/cart.ts`
+- `services/orders.ts`
+
+## Notes
+
+- Email/password auth works in Expo Go
+- Native Google sign-in needs a proper development build on supported platforms
+- Prescription submission currently stores a backend record and metadata, not a real uploaded file
+- See the root `README.md` for the complete monorepo workflow

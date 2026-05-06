@@ -1,119 +1,164 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+
 import { Palette } from '@/constants/theme';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { DashboardHeader, Sidebar } from '@/components/dashboard/DashboardComponents';
+
+function readParam(value: string | string[] | undefined, fallback = '') {
+  if (Array.isArray(value)) {
+    return value[0] ?? fallback;
+  }
+
+  return value ?? fallback;
+}
 
 export default function PrescriptionsSuccessScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
+  const prescriptionId = readParam(params.prescriptionId, 'Pending');
+  const errorMessage = readParam(params.errorMessage);
+  const isErrorState = Boolean(errorMessage);
+
   const toggleSidebar = () => {
     const toValue = isSidebarOpen ? 0 : 1;
-    if (!isSidebarOpen) setIsSidebarOpen(true);
-    
+    if (!isSidebarOpen) {
+      setIsSidebarOpen(true);
+    }
+
     Animated.timing(slideAnim, {
       toValue,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      if (isSidebarOpen) setIsSidebarOpen(false);
+      if (isSidebarOpen) {
+        setIsSidebarOpen(false);
+      }
     });
   };
 
   return (
     <View style={styles.container}>
       <DashboardHeader title="Prescriptions" onOpenSidebar={toggleSidebar} />
-      
-      <ScrollView 
+
+      <ScrollView
         style={styles.mainScroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Success Banner */}
-        <View style={styles.successBanner}>
-          <Feather name="check-circle" size={16} color="#059669" />
-          <Text style={styles.successBannerText}>Prescription submitted for pharmacist validation!</Text>
-        </View>
-
-        <View style={styles.headerSection}>
-          <Text style={styles.pageTitle}>Upload Prescription</Text>
-          <Text style={styles.pageSubtitle}>
-            Submit a valid prescription for Rx medicines — reviewed by our pharmacists
+        contentContainerStyle={styles.scrollContent}>
+        <View style={[styles.successBanner, isErrorState && styles.errorBanner]}>
+          <Feather
+            name={isErrorState ? 'alert-circle' : 'check-circle'}
+            size={16}
+            color={isErrorState ? '#B91C1C' : '#059669'}
+          />
+          <Text style={[styles.successBannerText, isErrorState && styles.errorBannerText]}>
+            {isErrorState
+              ? 'Prescription submission could not be completed.'
+              : 'Prescription submitted for pharmacist validation!'}
           </Text>
         </View>
 
-        {/* Stepper Card */}
+        <View style={styles.headerSection}>
+          <Text style={styles.pageTitle}>
+            {isErrorState ? 'Prescription Not Submitted' : 'Prescription Submitted'}
+          </Text>
+          <Text style={styles.pageSubtitle}>
+            {isErrorState
+              ? 'Return to the upload step and try again.'
+              : 'Your prescription is now stored in your account for future order checks.'}
+          </Text>
+        </View>
+
         <View style={styles.stepperCard}>
           <View style={styles.stepperContainer}>
-            {/* Step 1 - Completed */}
             <View style={[styles.stepCircle, styles.stepCircleCompleted]}>
               <Feather name="check-circle" size={20} color="#FFFFFF" />
             </View>
-            
-            {/* Divider 1 - Active */}
             <View style={[styles.stepDivider, styles.stepDividerActive]} />
-            
-            {/* Step 2 - Completed */}
             <View style={[styles.stepCircle, styles.stepCircleCompleted]}>
               <Feather name="check-circle" size={20} color="#FFFFFF" />
             </View>
-            
-            {/* Divider 2 - Active */}
             <View style={[styles.stepDivider, styles.stepDividerActive]} />
-            
-            {/* Step 3 - Active */}
-            <View style={[styles.stepCircle, styles.stepCircleActive]}>
-              <Feather name="shield" size={20} color="#2563EB" />
+            <View
+              style={[
+                styles.stepCircle,
+                isErrorState ? styles.stepCircleError : styles.stepCircleActive,
+              ]}>
+              <Feather
+                name={isErrorState ? 'alert-circle' : 'shield'}
+                size={20}
+                color={isErrorState ? '#B91C1C' : '#2563EB'}
+              />
             </View>
           </View>
         </View>
 
-        {/* Success Card */}
         <View style={styles.successCard}>
-          <View style={styles.successIconWrapper}>
-            <Feather name="shield" size={36} color="#10B981" />
+          <View
+            style={[
+              styles.successIconWrapper,
+              isErrorState && styles.successIconWrapperError,
+            ]}>
+            <Feather
+              name={isErrorState ? 'alert-circle' : 'shield'}
+              size={36}
+              color={isErrorState ? '#EF4444' : '#10B981'}
+            />
           </View>
-          
-          <Text style={styles.successTitle}>Prescription Submitted!</Text>
+
+          <Text style={styles.successTitle}>
+            {isErrorState ? 'Submission Failed' : 'Prescription Stored'}
+          </Text>
           <Text style={styles.successSubtitle}>
-            Your prescription has been sent to our pharmacist team for review. You'll be notified within 1-2 business hours.
+            {isErrorState
+              ? errorMessage
+              : 'Your prescription has been recorded and can now be referenced during future pickup reservations.'}
           </Text>
 
           <View style={styles.infoBox}>
             <View style={styles.infoIconBox}>
-              <Feather name="clock" size={20} color="#2563EB" />
+              <Feather
+                name={isErrorState ? 'info' : 'hash'}
+                size={20}
+                color={isErrorState ? '#EF4444' : '#2563EB'}
+              />
             </View>
             <View style={styles.infoTextBox}>
-              <Text style={styles.infoTitle}>Review in progress</Text>
-              <Text style={styles.infoSubtitle}>Expected: 1-2 business hours</Text>
+              <Text style={styles.infoTitle}>
+                {isErrorState ? 'What to do next' : 'Tracking reference'}
+              </Text>
+              <Text style={styles.infoSubtitle}>
+                {isErrorState ? 'Check the preview step and submit again.' : prescriptionId}
+              </Text>
             </View>
           </View>
 
           <View style={styles.actionButtonsRow}>
-            <Pressable style={styles.uploadAnotherBtn} onPress={() => router.push('/prescriptions' as any)}>
-              <Text style={styles.uploadAnotherText}>Upload{'\n'}Another</Text>
+            <Pressable
+              style={styles.uploadAnotherBtn}
+              onPress={() => router.push('/prescriptions' as any)}>
+              <Text style={styles.uploadAnotherText}>
+                {isErrorState ? 'Try Again' : 'Upload Another'}
+              </Text>
             </Pressable>
-            
-            <Pressable style={styles.goToOrdersBtn} onPress={() => router.push('/orders' as any)}>
-              <Text style={styles.goToOrdersText}>Go to{'\n'}Orders</Text>
+
+            <Pressable
+              style={styles.goToOrdersBtn}
+              onPress={() => router.push('/orders' as any)}>
+              <Text style={styles.goToOrdersText}>Go to Orders</Text>
               <Feather name="arrow-right" size={16} color="#FFFFFF" />
             </Pressable>
           </View>
         </View>
-
       </ScrollView>
 
-      {isSidebarOpen && (
-        <Sidebar 
-          isOpen={isSidebarOpen} 
-          onClose={toggleSidebar} 
-          slideAnim={slideAnim} 
-        />
-      )}
+      {isSidebarOpen ? (
+        <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} slideAnim={slideAnim} />
+      ) : null}
     </View>
   );
 }
@@ -128,7 +173,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 16, // Reduced slightly to accommodate banner
+    paddingTop: 16,
     paddingBottom: 40,
   },
   successBanner: {
@@ -143,10 +188,17 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     gap: 8,
   },
+  errorBanner: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
   successBannerText: {
     color: '#059669',
     fontSize: 14,
     fontWeight: '500',
+  },
+  errorBannerText: {
+    color: '#B91C1C',
   },
   headerSection: {
     marginBottom: 24,
@@ -193,6 +245,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563EB',
     borderColor: '#2563EB',
   },
+  stepCircleError: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
   stepDivider: {
     height: 2,
     flex: 1,
@@ -222,6 +278,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
+  },
+  successIconWrapperError: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
   },
   successTitle: {
     fontSize: 22,

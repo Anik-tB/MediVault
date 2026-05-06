@@ -107,22 +107,40 @@ exports.reserveForPickup = async (req, res) => {
       return res.status(400).json({ error: 'Your cart is empty' });
     }
 
+    let linkedPrescriptionId = null;
+
     // Check if any item requires a prescription
     const rxItems = cartResult.rows.filter(item => item.rx_required);
     if (rxItems.length > 0) {
-      await client.query('ROLLBACK');
-      const rxNames = rxItems.map(i => i.medicine_name).join(', ');
-      return res.status(403).json({
-        error: 'Prescription required',
-        message: `The following medicines require a valid prescription before pickup: ${rxNames}. Please upload your prescription in the Prescriptions section.`,
-        rx_items: rxNames,
-      });
+      const prescriptionResult = await client.query(
+        `SELECT id, status
+         FROM prescriptions
+         WHERE user_id = $1
+           AND status IN ('submitted', 'under_review', 'approved')
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [user_id]
+      );
+
+      if (prescriptionResult.rowCount === 0) {
+        await client.query('ROLLBACK');
+        const rxNames = rxItems.map(i => i.medicine_name).join(', ');
+        return res.status(403).json({
+          error: 'Prescription required',
+          message: `The following medicines require a valid prescription before pickup: ${rxNames}. Please upload your prescription in the Prescriptions section.`,
+          rx_items: rxNames,
+        });
+      }
+
+      linkedPrescriptionId = prescriptionResult.rows[0].id;
     }
 
     // 2. Create the order
     const orderResult = await client.query(
-      `INSERT INTO orders (user_id, status) VALUES ($1, 'pending_pickup') RETURNING *`,
-      [user_id]
+      `INSERT INTO orders (user_id, status, prescription_id)
+       VALUES ($1, 'pending_pickup', $2)
+       RETURNING *`,
+      [user_id, linkedPrescriptionId]
     );
     const order = orderResult.rows[0];
 

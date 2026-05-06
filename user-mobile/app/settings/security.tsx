@@ -17,8 +17,7 @@ import {
 } from '@firebase/auth';
 import { useRouter } from 'expo-router';
 
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { DashboardHeader, Sidebar } from '@/components/dashboard/DashboardComponents';
 import { Palette } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 

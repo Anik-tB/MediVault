@@ -1,47 +1,132 @@
 # MediVault Backend
 
-Express and PostgreSQL backend for MediVault.
+This folder contains the Express API and PostgreSQL integration used by the MediVault mobile app.
 
-## What Is Ready
+## What This Backend Does
 
-- Express server
-- PostgreSQL connection with `pg`
-- health check route
-- starter SQL schema for MediVault
-- sample medicine seed SQL
+- verifies Firebase ID tokens with Firebase Admin
+- syncs Firebase users into PostgreSQL
+- exposes medicine catalog data
+- stores cart items per user
+- creates pickup orders
+- stores prescription submission records
+- powers dashboard, profile, and settings screens
 
-## Files
+The API base path is:
 
-- `src/server.js` -> starts the backend
-- `src/app.js` -> Express app setup
-- `src/config/env.js` -> reads `.env`
-- `src/config/db.js` -> PostgreSQL pool and query helpers
-- `src/routes/index.js` -> API routes
-- `src/controllers/health.controller.js` -> health check response
-- `src/scripts/check-db.js` -> test the database connection
-- `database/migrations/001_init_medivault.sql` -> create tables
-- `database/seeders/001_sample_medicines.sql` -> insert sample data
+```text
+/api/v1
+```
 
-## Step By Step PostgreSQL Setup
+## Folder Guide
 
-### 1. Create the database in pgAdmin
+- `package.json`
+  - backend scripts and dependencies
+- `.env.example`
+  - sample local environment variables
+- `serviceAccountKey.json`
+  - local Firebase Admin credential file
+- `database/migrations/`
+  - SQL schema and seed files
+- `src/app.js`
+  - Express app setup
+- `src/server.js`
+  - starts the HTTP server
+- `src/config/`
+  - env loading, PostgreSQL pool, and Firebase Admin init
+- `src/controllers/`
+  - feature logic per route group
+- `src/middleware/`
+  - request middleware like auth verification
+- `src/routes/`
+  - API endpoint registration
+- `src/utils/`
+  - shared account helpers
+- `src/models/`
+  - currently reserved for future model abstractions
+- `src/services/`
+  - currently reserved for future business services
 
-In pgAdmin:
+## Route Map
 
-1. Open pgAdmin4
-2. Expand your PostgreSQL server
-3. Right click `Databases`
-4. Click `Create > Database`
-5. Name it `medivault`
-6. Save
+- `POST /auth/sync`
+  - sync the signed-in Firebase user into PostgreSQL
+- `GET /medicines`
+  - list medicines
+- `POST /cart`
+  - add item to cart
+- `GET /cart`
+  - get cart contents
+- `PATCH /cart/:cartItemId`
+  - update cart quantity
+- `DELETE /cart/:cartItemId`
+  - remove one cart item
+- `DELETE /cart`
+  - clear cart
+- `GET /dashboard`
+  - fetch dashboard summary and recent orders
+- `GET /orders`
+  - list order history
+- `GET /orders/:orderId`
+  - fetch order items
+- `DELETE /orders/:orderId`
+  - cancel pending pickup order
+- `POST /orders`
+  - reserve current cart for pickup
+- `GET /prescriptions`
+  - list prescription submissions
+- `POST /prescriptions`
+  - create a prescription record
+- `GET /profile`
+  - fetch user profile
+- `PATCH /profile`
+  - update profile
+- `GET /settings`
+  - fetch current settings
+- `PATCH /settings/notifications`
+  - update notification preferences
+- `PATCH /settings/appearance`
+  - update appearance preferences
 
-### 2. Create backend env file
+## Database Files
 
-Inside `backend`:
+Run these migrations in order:
 
-1. Copy `.env.example`
-2. Rename the copy to `.env`
-3. Put your real PostgreSQL password in `DB_PASSWORD`
+1. `database/migrations/users.sql`
+2. `database/migrations/user_profile_settings.sql`
+3. `database/migrations/medicines.sql`
+4. `database/migrations/cart.sql`
+5. `database/migrations/cart_items_view.sql`
+6. `database/migrations/orders.sql`
+7. `database/migrations/prescriptions.sql`
+
+What they hold:
+
+- `users.sql`
+  - base `users` table
+- `user_profile_settings.sql`
+  - extra profile fields plus `user_settings`
+- `medicines.sql`
+  - `medicines` table and seed records
+- `cart.sql`
+  - `cart_items`
+- `cart_items_view.sql`
+  - a helper SQL view for inspecting cart rows with medicine names
+- `orders.sql`
+  - `orders` and `order_items`
+- `prescriptions.sql`
+  - `prescriptions` and `orders.prescription_id`
+
+## Setup
+
+Install dependencies:
+
+```bash
+cd backend
+npm install
+```
+
+Create `.env` from `.env.example`.
 
 Example:
 
@@ -51,84 +136,23 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=medivault
 DB_USER=postgres
-DB_PASSWORD=your_real_password
+DB_PASSWORD=your_postgres_password
 ```
 
-### 3. Install backend packages
+Place your Firebase Admin key at:
 
-```bash
-cd backend
-npm install
+```text
+backend/serviceAccountKey.json
 ```
 
-### 4. Run the SQL migration in pgAdmin
-
-Open pgAdmin Query Tool for the `medivault` database and run:
-
-- `database/migrations/001_init_medivault.sql`
-
-This creates:
-
-- `users`
-- `medicines`
-- `inventory_batches`
-- `medicine_conflicts`
-- `orders`
-- `order_items`
-- `prescriptions`
-
-### 5. Add sample data
-
-Optional but useful for testing:
-
-- run `database/seeders/001_sample_medicines.sql`
-
-This adds:
-
-- Aspirin
-- Warfarin
-- Amoxicillin
-- one sample medicine conflict
-
-### 6. Check the database connection
-
-From `backend` run:
-
-```bash
-npm run db:check
-```
-
-If everything is correct, you should see:
-
-- database connected successfully
-- current database name
-- current PostgreSQL time
-
-### 7. Start the backend
+Start the server:
 
 ```bash
 npm run dev
 ```
 
-The server should run on:
+## Notes
 
-- `http://localhost:5000`
-
-Test route:
-
-- `GET http://localhost:5000/api/v1/health`
-
-## Health Route Response
-
-If PostgreSQL is connected, the route returns database status and current time.
-
-If PostgreSQL is not connected, it returns an error message so you know the backend is up but the DB config is wrong.
-
-## Recommended Next Step
-
-After PostgreSQL is working, the next backend task should be:
-
-1. add Firebase Admin SDK
-2. verify Firebase user tokens
-3. create `POST /auth/sync-profile`
-4. store signed-in mobile users in the `users` table
+- Rx order creation checks for a usable prescription record before creating the order
+- Prescription submission is currently metadata-based and does not yet store uploaded file binaries
+- See the root `README.md` for the end-to-end mobile + backend workflow

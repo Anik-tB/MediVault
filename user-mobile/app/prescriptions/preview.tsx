@@ -1,89 +1,129 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, ScrollView } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+
 import { Palette } from '@/constants/theme';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { DashboardHeader, Sidebar } from '@/components/dashboard/DashboardComponents';
+import { submitPrescription } from '@/services/prescriptions';
 
 export default function PrescriptionsPreviewScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const previewFile = {
+    fileName: (params.fileName as string) || 'unknown_file',
+    fileType: (params.fileType as string) || 'application/octet-stream',
+    fileSizeBytes: parseInt((params.fileSizeBytes as string) || '0', 10),
+  };
+  const fileUri = params.fileUri as string;
+  
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const toggleSidebar = () => {
     const toValue = isSidebarOpen ? 0 : 1;
-    if (!isSidebarOpen) setIsSidebarOpen(true);
-    
+    if (!isSidebarOpen) {
+      setIsSidebarOpen(true);
+    }
+
     Animated.timing(slideAnim, {
       toValue,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      if (isSidebarOpen) setIsSidebarOpen(false);
+      if (isSidebarOpen) {
+        setIsSidebarOpen(false);
+      }
     });
   };
+
+  async function handleSubmit() {
+    try {
+      setIsSubmitting(true);
+      const prescription = await submitPrescription(previewFile);
+      router.replace({
+        pathname: '/prescriptions/success',
+        params: {
+          prescriptionId: prescription.trackingId,
+        },
+      });
+    } catch (error) {
+      router.replace({
+        pathname: '/prescriptions/success',
+        params: {
+          prescriptionId: 'Submission failed',
+          errorMessage:
+            error instanceof Error ? error.message : 'Please try again from the upload screen.',
+        },
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
       <DashboardHeader title="Prescriptions" onOpenSidebar={toggleSidebar} />
-      
-      <ScrollView 
+
+      <ScrollView
         style={styles.mainScroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+        contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerSection}>
-          <Text style={styles.pageTitle}>Upload Prescription</Text>
+          <Text style={styles.pageTitle}>Review Prescription</Text>
           <Text style={styles.pageSubtitle}>
-            Submit a valid prescription for Rx medicines — reviewed by our pharmacists
+            Confirm the file details below before sending them for pharmacist review.
           </Text>
         </View>
 
-        {/* Stepper Card */}
         <View style={styles.stepperCard}>
           <View style={styles.stepperContainer}>
-            {/* Step 1 - Completed */}
             <View style={[styles.stepCircle, styles.stepCircleCompleted]}>
               <Feather name="check-circle" size={20} color="#FFFFFF" />
             </View>
-            
-            {/* Divider 1 */}
             <View style={[styles.stepDivider, styles.stepDividerActive]} />
-            
-            {/* Step 2 - Active */}
             <View style={[styles.stepCircle, styles.stepCircleActive]}>
               <Feather name="file-text" size={20} color="#2563EB" />
             </View>
-            
-            {/* Divider 2 */}
             <View style={styles.stepDivider} />
-            
-            {/* Step 3 - Inactive */}
             <View style={styles.stepCircle}>
               <Feather name="shield" size={20} color="#94A3B8" />
             </View>
           </View>
         </View>
 
-        {/* File Preview Card */}
         <View style={styles.previewCard}>
           <View style={styles.previewHeader}>
             <Text style={styles.previewTitle}>File Preview</Text>
-            <Text style={styles.previewSubtitle}>Review before submitting to our pharmacist team</Text>
+            <Text style={styles.previewSubtitle}>
+              Review before submitting to our pharmacist team
+            </Text>
           </View>
 
           <View style={styles.fileDetailsBox}>
             <View style={styles.fileThumbnail}>
               <Feather name="image" size={24} color="#F59E0B" />
             </View>
-            
+
             <View style={styles.fileInfo}>
-              <Text style={styles.fileName}>pc1.png</Text>
+              <Text style={styles.fileName}>{previewFile.fileName}</Text>
               <View style={styles.fileMetaRow}>
-                <Text style={styles.fileMetaText}>478.5 KB</Text>
+                <Text style={styles.fileMetaText}>
+                  {(previewFile.fileSizeBytes / 1024).toFixed(1)} KB
+                </Text>
                 <View style={styles.metaDivider} />
-                <Text style={styles.fileMetaText}>Image File</Text>
+                <Text style={styles.fileMetaText}>
+                  {previewFile.fileType.split('/')[1]?.toUpperCase() || 'FILE'}
+                </Text>
               </View>
               <View style={styles.fileStatusRow}>
                 <Feather name="check-circle" size={14} color="#10B981" />
@@ -91,7 +131,9 @@ export default function PrescriptionsPreviewScreen() {
               </View>
             </View>
 
-            <Pressable style={styles.deleteButton} onPress={() => router.push('/prescriptions' as any)}>
+            <Pressable
+              style={styles.deleteButton}
+              onPress={() => router.push('/prescriptions' as any)}>
               <Feather name="trash-2" size={18} color="#94A3B8" />
             </Pressable>
           </View>
@@ -103,7 +145,7 @@ export default function PrescriptionsPreviewScreen() {
             </View>
             <View style={styles.checklistItem}>
               <Feather name="check-circle" size={18} color="#10B981" />
-              <Text style={styles.checklistText}>Doctor's name and signature visible</Text>
+              <Text style={styles.checklistText}>Doctor signature is visible</Text>
             </View>
             <View style={styles.checklistItem}>
               <Feather name="check-circle" size={18} color="#10B981" />
@@ -116,26 +158,32 @@ export default function PrescriptionsPreviewScreen() {
           </View>
 
           <View style={styles.actionButtonsRow}>
-            <Pressable style={styles.uploadDifferentBtn} onPress={() => router.push('/prescriptions' as any)}>
+            <Pressable
+              style={styles.uploadDifferentBtn}
+              onPress={() => router.push('/prescriptions' as any)}>
               <Text style={styles.uploadDifferentText}>Upload Different{'\n'}File</Text>
             </Pressable>
-            
-            <Pressable style={styles.submitBtn} onPress={() => router.push('/prescriptions/success' as any)}>
-              <Feather name="shield" size={16} color="#FFFFFF" />
-              <Text style={styles.submitBtnText}>Submit{'\n'}Prescription</Text>
+
+            <Pressable
+              style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}>
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Feather name="shield" size={16} color="#FFFFFF" />
+                  <Text style={styles.submitBtnText}>Submit{'\n'}Prescription</Text>
+                </>
+              )}
             </Pressable>
           </View>
         </View>
-
       </ScrollView>
 
-      {isSidebarOpen && (
-        <Sidebar 
-          isOpen={isSidebarOpen} 
-          onClose={toggleSidebar} 
-          slideAnim={slideAnim} 
-        />
-      )}
+      {isSidebarOpen ? (
+        <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} slideAnim={slideAnim} />
+      ) : null}
     </View>
   );
 }
@@ -330,6 +378,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
+  },
+  submitBtnDisabled: {
+    opacity: 0.75,
   },
   submitBtnText: {
     color: '#FFFFFF',

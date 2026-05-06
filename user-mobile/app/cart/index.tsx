@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, Pressable, Animated, ScrollView, ActivityIndica
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Palette } from '@/constants/theme';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { DashboardHeader, Sidebar } from '@/components/dashboard/DashboardComponents';
 import { getCartItems, updateCartQuantity, removeFromCart, clearCart } from '@/services/cart';
 import { reserveForPickup } from '@/services/orders';
 
