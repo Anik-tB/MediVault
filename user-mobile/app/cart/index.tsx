@@ -1,27 +1,45 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, ScrollView } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, Animated, ScrollView, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Palette } from '@/constants/theme';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Sidebar } from '@/components/dashboard/Sidebar';
+import { getCartItems, updateCartQuantity, removeFromCart, clearCart } from '@/services/cart';
 
 export default function CartScreen() {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  // Mock State for the prototype
-  const cartItems = [
-    {
-      id: '1',
-      name: 'Amoxicillin',
-      rxRequired: true,
-      category: 'Antibiotic',
-      available: 150,
-      quantity: 1,
-    }
-  ];
+  // Live cart state
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadCart = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getCartItems();
+        // Map backend snake_case to UI camelCase
+        const mapped = data.map((item: any) => ({
+          id: String(item.cart_item_id),
+          name: item.name,
+          rxRequired: item.rx_required,
+          category: item.category,
+          available: item.available,
+          quantity: item.quantity,
+        }));
+        setCartItems(mapped);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load cart');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadCart();
+  }, []);
 
   const hasItems = cartItems.length > 0;
   const totalUnits = cartItems.reduce((acc, item) => acc + item.quantity, 0);
@@ -39,9 +57,45 @@ export default function CartScreen() {
     });
   };
 
+  const handleUpdateQuantity = async (cartItemId: string, newQty: number) => {
+    if (newQty < 1) return;
+    setCartItems(prev => prev.map(i => i.id === cartItemId ? { ...i, quantity: newQty } : i));
+    try {
+      await updateCartQuantity(cartItemId, newQty);
+    } catch {
+      const data = await getCartItems();
+      setCartItems(data.map((item: any) => ({
+        id: String(item.cart_item_id), name: item.name, rxRequired: item.rx_required,
+        category: item.category, available: item.available, quantity: item.quantity,
+      })));
+    }
+  };
+
+  const handleRemoveItem = async (cartItemId: string) => {
+    setCartItems(prev => prev.filter(i => i.id !== cartItemId));
+    try { await removeFromCart(cartItemId); } catch (err) { console.error(err); }
+  };
+
+  const handleClearCart = async () => {
+    setCartItems([]);
+    try { await clearCart(); } catch (err) { console.error(err); }
+  };
+
   return (
     <View style={styles.container}>
       <DashboardHeader title="My Cart" onOpenSidebar={toggleSidebar} />
+      
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2563EB" />
+          <Text style={styles.loadingText}>Loading your cart...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.loadingContainer}>
+          <Feather name="wifi-off" size={40} color="#94A3B8" />
+          <Text style={styles.loadingText}>{error}</Text>
+        </View>
+      ) : (
       
       <ScrollView 
         style={styles.mainScroll}
@@ -63,7 +117,7 @@ export default function CartScreen() {
               </View>
             </View>
             {hasItems && (
-              <Pressable>
+              <Pressable onPress={handleClearCart}>
                 <Text style={styles.clearAllText}>Clear All</Text>
               </Pressable>
             )}
@@ -115,7 +169,7 @@ export default function CartScreen() {
                         {item.category} · {item.available} available
                       </Text>
                     </View>
-                    <Pressable style={styles.deleteBtn}>
+                    <Pressable style={styles.deleteBtn} onPress={() => handleRemoveItem(item.id)}>
                       <Feather name="trash-2" size={18} color="#CBD5E1" />
                     </Pressable>
                   </View>
@@ -123,11 +177,11 @@ export default function CartScreen() {
                   <View style={styles.quantityRow}>
                     <Text style={styles.quantityLabel}>QUANTITY</Text>
                     <View style={styles.quantityControls}>
-                      <Pressable style={styles.qtyBtnMinus}>
+                      <Pressable style={styles.qtyBtnMinus} onPress={() => handleUpdateQuantity(item.id, item.quantity - 1)}>
                         <Feather name="minus" size={16} color="#64748B" />
                       </Pressable>
                       <Text style={styles.qtyValue}>{item.quantity}</Text>
-                      <Pressable style={styles.qtyBtnPlus}>
+                      <Pressable style={styles.qtyBtnPlus} onPress={() => handleUpdateQuantity(item.id, item.quantity + 1)}>
                         <Feather name="plus" size={16} color="#2563EB" />
                       </Pressable>
                     </View>
@@ -184,6 +238,8 @@ export default function CartScreen() {
         )}
       </ScrollView>
 
+      )}
+
       {isSidebarOpen && (
         <Sidebar 
           isOpen={isSidebarOpen} 
@@ -199,6 +255,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Palette.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
   },
   mainScroll: {
     flex: 1,
