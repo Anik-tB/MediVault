@@ -7,14 +7,17 @@ const medicinesRoutes = require('./medicines.routes');
 const cartRoutes = require('./cart.routes');
 const profileRoutes = require('./profile.routes');
 const settingsRoutes = require('./settings.routes');
+const ordersRoutes = require('./orders.routes');
 
 const router = express.Router();
 
 router.get('/health', getHealth);
+
 router.use('/auth', authRoutes);
 router.use('/medicines', medicinesRoutes);
 router.use('/cart', cartRoutes);
 router.use('/profile', profileRoutes);
 router.use('/settings', settingsRoutes);
+router.use('/orders', ordersRoutes);
 
 module.exports = router;
