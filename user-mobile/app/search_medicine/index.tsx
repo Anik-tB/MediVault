@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -6,12 +6,16 @@ import {
   ScrollView, 
   TextInput, 
   Pressable, 
-  Animated 
+  Animated,
+  Alert,
+  Platform
 } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Sidebar } from '@/components/dashboard/Sidebar';
+import { fetchMedicines } from '@/services/medicines';
+import { addToCart } from '@/services/cart';
 
 // Types
 type MedicineCategory = 
@@ -133,6 +137,56 @@ export default function SearchMedicinesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<MedicineCategory>('All');
   
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Fetch medicines from backend
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadMedicines = async () => {
+      setIsLoading(true);
+      try {
+        // Debounce or directly fetch, for simplicity fetch directly based on state
+        const data = await fetchMedicines(searchQuery, selectedCategory);
+        if (isMounted) {
+          setMedicines(data);
+        }
+      } catch (error) {
+        console.error('Failed to load medicines:', error);
+        // Fallback to empty or toast error
+        if (isMounted) setMedicines([]);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    // Debounce the search input
+    const timeoutId = setTimeout(() => {
+      loadMedicines();
+    }, 300);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, [searchQuery, selectedCategory]);
+
+  const handleAddToCart = async (medicineId: string, medicineName: string) => {
+    try {
+      await addToCart(medicineId, 1);
+      
+      // Show custom toast message
+      setToastMessage(`${medicineName} added to cart successfully!`);
+      setTimeout(() => setToastMessage(null), 3000); // Hide after 3s
+
+    } catch (error: any) {
+      setToastMessage(`Error: ${error.message || 'Failed to add to cart.'}`);
+      setTimeout(() => setToastMessage(null), 4000);
+    }
+  };
+  
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -150,12 +204,9 @@ export default function SearchMedicinesScreen() {
     });
   };
 
-  const filteredMedicines = MEDICINES_DATA.filter((med) => {
-    const matchesSearch = med.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          med.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || med.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  // Client-side filtering is no longer needed as the backend handles it,
+  // but we use the state `medicines` directly.
+  const filteredMedicines = medicines;
 
   const getStockStatus = (stock: number) => {
     if (stock === 0) return { label: 'Out of Stock', color: '#EF4444', percent: 0 };
@@ -277,6 +328,7 @@ export default function SearchMedicinesScreen() {
                   <Pressable 
                     style={[styles.addToCartButton, med.stock === 0 && styles.addToCartDisabled]}
                     disabled={med.stock === 0}
+                    onPress={() => handleAddToCart(med.id, med.name)}
                   >
                     {med.stock > 0 ? (
                       <>
@@ -295,11 +347,21 @@ export default function SearchMedicinesScreen() {
         </View>
       </ScrollView>
 
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        onClose={toggleSidebar} 
-        slideAnim={slideAnim} 
-      />
+      {isSidebarOpen && (
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          onClose={toggleSidebar} 
+          slideAnim={slideAnim} 
+        />
+      )}
+
+      {/* Custom Toast Notification */}
+      {toastMessage && (
+        <View style={styles.toastContainer}>
+          <Feather name={toastMessage.startsWith('Error') ? "alert-circle" : "check-circle"} size={20} color="#FFF" />
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -513,6 +575,29 @@ const styles = StyleSheet.create({
   addToCartTextDisabled: {
     color: '#94A3B8',
     fontSize: 15,
+    fontWeight: '600',
+  },
+  toastContainer: {
+    position: 'absolute',
+    bottom: 40,
+    alignSelf: 'center',
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 100,
+  },
+  toastText: {
+    color: '#FFF',
+    fontSize: 14,
     fontWeight: '600',
   },
 });
