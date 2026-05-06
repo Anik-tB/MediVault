@@ -19,8 +19,7 @@ The implemented user journey today is:
 
 Important current boundary:
 
-- Prescription submission is currently a backend record + metadata flow.
-- The app does not yet upload a real file binary to cloud storage.
+- Prescription submission uploads the real file binary to the local backend server (stored in `backend/uploads/`).
 - Rx validation for orders is based on the stored prescription record status.
 
 ## Repository Layout
@@ -208,6 +207,8 @@ Current behavior:
   - creates `orders` and `order_items`
 - `backend/database/migrations/prescriptions.sql`
   - creates `prescriptions` and adds `orders.prescription_id`
+- `backend/database/migrations/notifications.sql`
+  - creates `notifications` for real-time alerts
 
 ### Backend config folder
 
@@ -347,8 +348,6 @@ Current behavior:
   - settings home plus appearance, notifications, and security screens
 - `user-mobile/app/notifications/`
   - notifications screen UI
-- `user-mobile/app/(tabs)/`
-  - leftover Expo template area, not the main MediVault route flow
 
 ### Mobile components folder
 
@@ -399,11 +398,9 @@ Current behavior:
 - `user-mobile/services/profile.ts`
   - profile and settings requests
 
-Important current detail:
-
-- The API base URL is not fully centralized yet.
-- `api.ts`, `medicines.ts`, `cart.ts`, and `orders.ts` each define a local `DEVICE_IP` / API base.
-- If you change your local backend IP for phone testing, update all of those files together.
+- The API base URL is centralized dynamically in `api.ts`.
+- It automatically detects your Expo Go host IP address using `expo-constants`.
+- You do NOT need to manually configure IP addresses when testing on a physical phone.
 
 ## Local Setup
 
@@ -484,14 +481,7 @@ You need values for:
 
 ### 4. Point the mobile app to your backend
 
-For physical-device testing on the same Wi-Fi:
-
-- find your computer's local IPv4 address
-- update the `DEVICE_IP` value in:
-  - `user-mobile/services/api.ts`
-  - `user-mobile/services/medicines.ts`
-  - `user-mobile/services/cart.ts`
-  - `user-mobile/services/orders.ts`
+For physical-device testing on the same Wi-Fi, the Expo app automatically detects your computer's local IPv4 address via the Metro bundler. No manual IP configuration is required!
 
 Then start Expo:
 
@@ -525,5 +515,4 @@ npm run web
 ## Known Gaps
 
 - `admin-web/` is still work in progress
-- prescription submission does not yet upload a real file to storage
 - medicine conflict rules are documented in `docs/architecture.md` but are not yet enforced in the current backend

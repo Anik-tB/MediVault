@@ -59,9 +59,7 @@ This folder contains the Expo app used by patients/customers.
 - `app/settings/`
   - settings home, appearance, notifications, and security
 - `app/notifications/`
-  - notifications UI
-- `app/(tabs)/`
-  - leftover Expo template area, not the main MediVault route path
+  - full-stack database-backed real-time alerts with auto-seeding demo functionality
 
 ## Component Folders
 
@@ -112,18 +110,13 @@ npm run start
 
 ## Important Networking Note
 
-The backend IP is not fully centralized yet.
+The API base URL is centralized dynamically in `services/api.ts`.
 
-If you run the backend on your laptop and test on a physical phone, update the local IP in:
-
-- `services/api.ts`
-- `services/medicines.ts`
-- `services/cart.ts`
-- `services/orders.ts`
+If you run the backend on your laptop and test on a physical phone on the same Wi-Fi, the Expo app automatically detects your computer's local IPv4 address via the Metro bundler. No manual IP configuration is required!
 
 ## Notes
 
 - Email/password auth works in Expo Go
 - Native Google sign-in needs a proper development build on supported platforms
-- Prescription submission currently stores a backend record and metadata, not a real uploaded file
+- Prescription submission uses `expo-document-picker` to select local files and uploads the real file binary directly to the backend `uploads/` folder
 - See the root `README.md` for the complete monorepo workflow

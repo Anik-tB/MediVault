@@ -49,7 +49,12 @@ export default function PrescriptionsPreviewScreen() {
   async function handleSubmit() {
     try {
       setIsSubmitting(true);
-      const prescription = await submitPrescription(previewFile);
+      const prescription = await submitPrescription({
+        fileName: previewFile.fileName,
+        fileType: previewFile.fileType,
+        fileSizeBytes: previewFile.fileSizeBytes,
+        fileUri: fileUri,
+      });
       router.replace({
         pathname: '/prescriptions/success',
         params: {

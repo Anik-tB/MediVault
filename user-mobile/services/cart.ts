@@ -1,11 +1,5 @@
-import { Platform } from 'react-native';
 import { getFirebaseAuth } from './firebase';
-
-const DEVICE_IP = '10.15.4.173';
-const API_URL =
-  Platform.OS === 'web'
-    ? 'http://localhost:5000/api/v1'
-    : `http://${DEVICE_IP}:5000/api/v1`;
+import { API_URL } from './api';
 
 export async function addToCart(medicineId: string, quantity: number = 1) {
   try {

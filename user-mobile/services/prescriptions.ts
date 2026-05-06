@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import { fetchAuthenticatedJson } from './api';
 
 export type Prescription = {
@@ -36,7 +38,7 @@ export type SubmitPrescriptionInput = {
   fileName: string;
   fileType: string;
   fileSizeBytes: number;
-  storageUrl?: string;
+  fileUri: string;
 };
 
 export async function fetchPrescriptions() {
@@ -44,9 +46,25 @@ export async function fetchPrescriptions() {
 }
 
 export async function submitPrescription(payload: SubmitPrescriptionInput) {
+  const formData = new FormData();
+
+  if (Platform.OS === 'web') {
+    // On Web, we must fetch the blob from the blob URL and append it
+    const response = await fetch(payload.fileUri);
+    const blob = await response.blob();
+    formData.append('prescription', blob, payload.fileName);
+  } else {
+    // On Native, we can pass the object with the uri
+    formData.append('prescription', {
+      uri: payload.fileUri,
+      name: payload.fileName,
+      type: payload.fileType,
+    } as any);
+  }
+
   const response = await fetchAuthenticatedJson<CreatePrescriptionResponse>('/prescriptions', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: formData,
   });
 
   return response.prescription;

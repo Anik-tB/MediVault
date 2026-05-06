@@ -10,6 +10,7 @@ const settingsRoutes = require('./settings.routes');
 const ordersRoutes = require('./orders.routes');
 const prescriptionsRoutes = require('./prescriptions.routes');
 const dashboardRoutes = require('./dashboard.routes');
+const notificationsRoutes = require('./notifications.routes');
 
 const router = express.Router();
 
@@ -23,5 +24,6 @@ router.use('/settings', settingsRoutes);
 router.use('/orders', ordersRoutes);
 router.use('/prescriptions', prescriptionsRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/notifications', notificationsRoutes);
 
 module.exports = router;

@@ -1,11 +1,11 @@
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { getFirebaseAuth } from './firebase';
 
-// For Android emulator to access local backend, use 10.0.2.2.
-// For Web or iOS simulator, use localhost.
-// For a physical device on the same Wi-Fi, use your computer's local IP address.
-const DEVICE_IP = '10.15.4.173';
+// Dynamically grab the local IP address from Expo's bundler
+const debuggerHost = Constants.expoConfig?.hostUri;
+const DEVICE_IP = debuggerHost ? debuggerHost.split(':')[0] : 'localhost';
 
 export const API_URL =
   Platform.OS === 'web'

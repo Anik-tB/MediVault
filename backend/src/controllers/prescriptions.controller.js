@@ -72,28 +72,19 @@ exports.createPrescription = async (req, res) => {
   try {
     await ensureUserRecord(req.user);
 
-    const requestBody = req.body || {};
-    const fileName = normalizeOptionalText(requestBody.fileName, {
-      fieldName: 'fileName',
-      maxLength: 255,
-    });
-    const fileType = normalizeOptionalText(requestBody.fileType, {
-      fieldName: 'fileType',
-      maxLength: 120,
-    });
+    if (!req.file) {
+      throw new ValidationError('A prescription file is required.');
+    }
+
+    const fileName = req.file.originalname;
+    const fileType = req.file.mimetype;
+    const fileSizeBytes = req.file.size;
 
     if (!fileName || !fileType) {
       throw new ValidationError('fileName and fileType are required');
     }
 
-    const storageUrl = hasOwnProperty(requestBody, 'storageUrl')
-      ? normalizeOptionalText(requestBody.storageUrl, {
-          fieldName: 'storageUrl',
-          maxLength: 1000,
-        })
-      : null;
-
-    const fileSizeBytes = Number(requestBody.fileSizeBytes);
+    const storageUrl = `/uploads/${req.file.filename}`;
 
     if (!Number.isFinite(fileSizeBytes) || fileSizeBytes < 1 || fileSizeBytes > 5242880) {
       throw new ValidationError('fileSizeBytes must be between 1 and 5242880');

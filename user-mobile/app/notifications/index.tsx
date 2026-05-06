@@ -1,51 +1,61 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Animated } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+
 import { Palette } from '@/constants/theme';
 import { DashboardHeader, Sidebar } from '@/components/dashboard/DashboardComponents';
+import { useAuth } from '@/hooks/use-auth';
+import { fetchNotifications, markAllNotificationsAsRead, Notification } from '@/services/notifications';
 
-// Mock Data
-const MOCK_NOTIFICATIONS = [
-  {
-    id: '1',
-    type: 'order',
-    title: 'Order Ready for Pickup',
-    message: 'Your order ORD-0038 (Ibuprofen) is now ready to be picked up at the counter.',
-    time: '10 mins ago',
-    unread: true,
-  },
-  {
-    id: '2',
-    type: 'prescription',
-    title: 'Prescription Validated',
-    message: 'Your recent prescription upload has been reviewed and approved by our pharmacist.',
-    time: '2 hours ago',
-    unread: true,
-  },
-  {
-    id: '3',
-    type: 'system',
-    title: 'Welcome to MediVault!',
-    message: 'We are glad to have you. Explore our catalog of medications and easily manage your prescriptions.',
-    time: '1 day ago',
-    unread: false,
-  },
-  {
-    id: '4',
-    type: 'alert',
-    title: 'Profile Incomplete',
-    message: 'Please complete your medical summary in the profile section for better medication recommendations.',
-    time: '2 days ago',
-    unread: false,
-  },
-];
+function formatTimeAgo(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return 'Just now';
+  
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hours ago`;
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays === 1) return '1 day ago';
+  return `${diffInDays} days ago`;
+}
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const { initializing, user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      if (!initializing && !user) {
+        router.replace('/');
+        return;
+      }
+
+      if (user) {
+        fetchNotifications()
+          .then((data) => {
+            if (isActive) setNotifications(data.notifications);
+          })
+          .catch((err) => console.error('Failed to load notifications', err));
+      }
+
+      return () => {
+        isActive = false;
+      };
+    }, [initializing, user, router])
+  );
 
   const toggleSidebar = () => {
     const toValue = isSidebarOpen ? 0 : 1;
@@ -60,8 +70,13 @@ export default function NotificationsScreen() {
     });
   };
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, unread: false })));
+  const markAllAsRead = async () => {
+    try {
+      await markAllNotificationsAsRead();
+      setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+    } catch (err) {
+      console.error('Failed to mark all as read', err);
+    }
   };
 
   const getIconConfig = (type: string) => {
@@ -92,7 +107,7 @@ export default function NotificationsScreen() {
           <View>
             <Text style={styles.pageTitle}>Notifications</Text>
             <Text style={styles.pageSubtitle}>
-              You have {notifications.filter(n => n.unread).length} unread messages
+              You have {notifications.filter(n => !n.is_read).length} unread messages
             </Text>
           </View>
           
@@ -108,17 +123,18 @@ export default function NotificationsScreen() {
         <View style={styles.notificationsList}>
           {notifications.map((noti) => {
             const iconConfig = getIconConfig(noti.type);
+            const isUnread = !noti.is_read;
             
             return (
               <View 
                 key={noti.id} 
                 style={[
                   styles.notificationCard, 
-                  noti.unread && styles.notificationCardUnread
+                  isUnread && styles.notificationCardUnread
                 ]}
               >
                 {/* Unread Indicator Dot */}
-                {noti.unread && <View style={styles.unreadDot} />}
+                {isUnread && <View style={styles.unreadDot} />}
 
                 <View style={[styles.iconBox, { backgroundColor: iconConfig.bgColor }]}>
                   <Feather name={iconConfig.name as any} size={20} color={iconConfig.color} />
@@ -126,10 +142,10 @@ export default function NotificationsScreen() {
                 
                 <View style={styles.textContent}>
                   <View style={styles.titleRow}>
-                    <Text style={[styles.notiTitle, noti.unread && styles.notiTitleUnread]}>
+                    <Text style={[styles.notiTitle, isUnread && styles.notiTitleUnread]}>
                       {noti.title}
                     </Text>
-                    <Text style={styles.notiTime}>{noti.time}</Text>
+                    <Text style={styles.notiTime}>{formatTimeAgo(noti.created_at)}</Text>
                   </View>
                   <Text style={styles.notiMessage} numberOfLines={2}>
                     {noti.message}
