@@ -1,44 +1,121 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Animated, Switch } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Palette } from '@/constants/theme';
+
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Sidebar } from '@/components/dashboard/Sidebar';
+import { Palette } from '@/constants/theme';
+import {
+  fetchUserSettings,
+  updateNotificationSettings,
+} from '@/services/profile';
 
 export default function NotificationsSettingsScreen() {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  // Toggle states
   const [orderAlerts, setOrderAlerts] = useState(true);
   const [lowStock, setLowStock] = useState(true);
   const [expiryAlerts, setExpiryAlerts] = useState(true);
   const [weeklyReports, setWeeklyReports] = useState(false);
 
+  useEffect(() => {
+    let isActive = true;
+
+    (async () => {
+      try {
+        setIsLoading(true);
+        const settings = await fetchUserSettings();
+
+        if (!isActive) {
+          return;
+        }
+
+        setOrderAlerts(settings.notifications.orderAlerts);
+        setLowStock(settings.notifications.lowStockAlerts);
+        setExpiryAlerts(settings.notifications.expiryAlerts);
+        setWeeklyReports(settings.notifications.weeklyReports);
+        setLoadError('');
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        setLoadError(
+          error instanceof Error ? error.message : 'Failed to load notification settings.'
+        );
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   const toggleSidebar = () => {
     const toValue = isSidebarOpen ? 0 : 1;
-    if (!isSidebarOpen) setIsSidebarOpen(true);
-    
+    if (!isSidebarOpen) {
+      setIsSidebarOpen(true);
+    }
+
     Animated.timing(slideAnim, {
       toValue,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      if (isSidebarOpen) setIsSidebarOpen(false);
+      if (isSidebarOpen) {
+        setIsSidebarOpen(false);
+      }
     });
   };
+
+  async function handleSave() {
+    try {
+      setIsSaving(true);
+      await updateNotificationSettings({
+        orderAlerts,
+        lowStockAlerts: lowStock,
+        expiryAlerts,
+        weeklyReports,
+      });
+      Alert.alert('Preferences saved', 'Your notification settings have been updated.');
+    } catch (error) {
+      Alert.alert(
+        'Save failed',
+        error instanceof Error ? error.message : 'Please try again.'
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
       <DashboardHeader title="Settings" onOpenSidebar={toggleSidebar} />
 
-      <ScrollView 
+      <ScrollView
         style={styles.mainScroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+        contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerSection}>
           <Text style={styles.pageTitle}>Settings</Text>
           <Text style={styles.pageSubtitle}>
@@ -46,7 +123,6 @@ export default function NotificationsSettingsScreen() {
           </Text>
         </View>
 
-        {/* Navigation Card */}
         <View style={styles.navCard}>
           <Pressable style={styles.navItem} onPress={() => router.push('/settings' as any)}>
             <View style={styles.navIconBox}>
@@ -65,7 +141,9 @@ export default function NotificationsSettingsScreen() {
             </View>
             <View style={styles.navTextContainer}>
               <Text style={[styles.navTitle, styles.navTitleActive]}>Notifications</Text>
-              <Text style={[styles.navSubtitle, styles.navSubtitleActive]}>Alert preferences</Text>
+              <Text style={[styles.navSubtitle, styles.navSubtitleActive]}>
+                Alert preferences
+              </Text>
             </View>
             <Feather name="chevron-right" size={20} color="#FFFFFF" />
           </View>
@@ -93,7 +171,6 @@ export default function NotificationsSettingsScreen() {
           </Pressable>
         </View>
 
-        {/* Notifications Settings Card */}
         <View style={styles.notificationsCard}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderIcon}>
@@ -108,102 +185,118 @@ export default function NotificationsSettingsScreen() {
           <View style={styles.divider} />
 
           <View style={styles.cardContent}>
-            {/* Info Box */}
             <View style={styles.infoBox}>
               <Feather name="bell" size={18} color="#2563EB" />
               <Text style={styles.infoBoxText}>
-                Configure which notifications you receive. Changes apply immediately.
+                Configure which notifications you receive. Changes apply immediately after
+                saving.
               </Text>
             </View>
 
-            {/* Toggle List */}
-            <View style={styles.toggleList}>
-              {/* Order Alerts */}
-              <View style={styles.toggleItem}>
-                <View style={styles.toggleTextContainer}>
-                  <Text style={styles.toggleTitle}>Order Alerts</Text>
-                  <Text style={styles.toggleSubtitle}>Get notified when new orders are placed or updated</Text>
-                </View>
-                <Switch
-                  trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
-                  thumbColor="#FFFFFF"
-                  ios_backgroundColor="#E2E8F0"
-                  onValueChange={setOrderAlerts}
-                  value={orderAlerts}
-                />
+            {loadError ? (
+              <View style={styles.noticeBox}>
+                <Feather name="alert-circle" size={16} color="#B45309" />
+                <Text style={styles.noticeText}>{loadError}</Text>
               </View>
+            ) : null}
 
-              <View style={styles.dividerLight} />
-
-              {/* Low Stock Warnings */}
-              <View style={styles.toggleItem}>
-                <View style={styles.toggleTextContainer}>
-                  <Text style={styles.toggleTitle}>Low Stock Warnings</Text>
-                  <Text style={styles.toggleSubtitle}>Alert when medicine stock falls below 50 units</Text>
-                </View>
-                <Switch
-                  trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
-                  thumbColor="#FFFFFF"
-                  ios_backgroundColor="#E2E8F0"
-                  onValueChange={setLowStock}
-                  value={lowStock}
-                />
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#2563EB" />
+                <Text style={styles.loadingText}>Loading your preferences...</Text>
               </View>
-
-              <View style={styles.dividerLight} />
-
-              {/* Expiry Alerts */}
-              <View style={styles.toggleItem}>
-                <View style={styles.toggleTextContainer}>
-                  <Text style={styles.toggleTitle}>Expiry Alerts</Text>
-                  <Text style={styles.toggleSubtitle}>Reminder when medicines are expiring within 3 months</Text>
+            ) : (
+              <View style={styles.toggleList}>
+                <View style={styles.toggleItem}>
+                  <View style={styles.toggleTextContainer}>
+                    <Text style={styles.toggleTitle}>Order Alerts</Text>
+                    <Text style={styles.toggleSubtitle}>
+                      Get notified when new orders are placed or updated
+                    </Text>
+                  </View>
+                  <Switch
+                    trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
+                    thumbColor="#FFFFFF"
+                    ios_backgroundColor="#E2E8F0"
+                    onValueChange={setOrderAlerts}
+                    value={orderAlerts}
+                  />
                 </View>
-                <Switch
-                  trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
-                  thumbColor="#FFFFFF"
-                  ios_backgroundColor="#E2E8F0"
-                  onValueChange={setExpiryAlerts}
-                  value={expiryAlerts}
-                />
-              </View>
 
-              <View style={styles.dividerLight} />
+                <View style={styles.dividerLight} />
 
-              {/* Weekly Reports */}
-              <View style={styles.toggleItem}>
-                <View style={styles.toggleTextContainer}>
-                  <Text style={styles.toggleTitle}>Weekly Reports</Text>
-                  <Text style={styles.toggleSubtitle}>Receive a weekly summary of inventory and order activity</Text>
+                <View style={styles.toggleItem}>
+                  <View style={styles.toggleTextContainer}>
+                    <Text style={styles.toggleTitle}>Low Stock Warnings</Text>
+                    <Text style={styles.toggleSubtitle}>
+                      Alert when medicine stock falls below 50 units
+                    </Text>
+                  </View>
+                  <Switch
+                    trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
+                    thumbColor="#FFFFFF"
+                    ios_backgroundColor="#E2E8F0"
+                    onValueChange={setLowStock}
+                    value={lowStock}
+                  />
                 </View>
-                <Switch
-                  trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
-                  thumbColor="#FFFFFF"
-                  ios_backgroundColor="#E2E8F0"
-                  onValueChange={setWeeklyReports}
-                  value={weeklyReports}
-                />
+
+                <View style={styles.dividerLight} />
+
+                <View style={styles.toggleItem}>
+                  <View style={styles.toggleTextContainer}>
+                    <Text style={styles.toggleTitle}>Expiry Alerts</Text>
+                    <Text style={styles.toggleSubtitle}>
+                      Reminder when medicines are expiring within 3 months
+                    </Text>
+                  </View>
+                  <Switch
+                    trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
+                    thumbColor="#FFFFFF"
+                    ios_backgroundColor="#E2E8F0"
+                    onValueChange={setExpiryAlerts}
+                    value={expiryAlerts}
+                  />
+                </View>
+
+                <View style={styles.dividerLight} />
+
+                <View style={styles.toggleItem}>
+                  <View style={styles.toggleTextContainer}>
+                    <Text style={styles.toggleTitle}>Weekly Reports</Text>
+                    <Text style={styles.toggleSubtitle}>
+                      Receive a weekly summary of inventory and order activity
+                    </Text>
+                  </View>
+                  <Switch
+                    trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
+                    thumbColor="#FFFFFF"
+                    ios_backgroundColor="#E2E8F0"
+                    onValueChange={setWeeklyReports}
+                    value={weeklyReports}
+                  />
+                </View>
               </View>
-            </View>
+            )}
           </View>
 
-          {/* Save Button */}
           <View style={styles.saveBtnContainer}>
-            <Pressable style={styles.saveBtn}>
+            <Pressable
+              style={[styles.saveBtn, (isSaving || isLoading) && styles.saveBtnDisabled]}
+              disabled={isSaving || isLoading}
+              onPress={handleSave}>
               <Feather name="save" size={16} color="#FFFFFF" />
-              <Text style={styles.saveBtnText}>Save Preferences</Text>
+              <Text style={styles.saveBtnText}>
+                {isSaving ? 'Saving...' : 'Save Preferences'}
+              </Text>
             </Pressable>
           </View>
         </View>
-
       </ScrollView>
 
-      {isSidebarOpen && (
-        <Sidebar 
-          isOpen={isSidebarOpen} 
-          onClose={toggleSidebar} 
-          slideAnim={slideAnim} 
-        />
-      )}
+      {isSidebarOpen ? (
+        <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} slideAnim={slideAnim} />
+      ) : null}
     </View>
   );
 }
@@ -339,9 +432,37 @@ const styles = StyleSheet.create({
   infoBoxText: {
     flex: 1,
     fontSize: 14,
-    color: '#1D4ED8', // Darker blue for text readability
+    color: '#1D4ED8',
     lineHeight: 20,
     fontWeight: '500',
+  },
+  noticeBox: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    marginBottom: 16,
+  },
+  noticeText: {
+    flex: 1,
+    color: '#92400E',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+    gap: 12,
+  },
+  loadingText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '600',
   },
   toggleList: {
     gap: 16,
@@ -369,7 +490,7 @@ const styles = StyleSheet.create({
   saveBtnContainer: {
     padding: 24,
     paddingTop: 0,
-    alignItems: 'center', // Center aligned as per mockup for this button
+    alignItems: 'center',
   },
   saveBtn: {
     backgroundColor: '#2563EB',
@@ -381,6 +502,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
     width: '100%',
+  },
+  saveBtnDisabled: {
+    opacity: 0.7,
   },
   saveBtnText: {
     color: '#FFFFFF',

@@ -1,41 +1,113 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Animated } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Palette } from '@/constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Sidebar } from '@/components/dashboard/Sidebar';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Palette } from '@/constants/theme';
+import { fetchUserSettings, updateAppearanceSettings } from '@/services/profile';
+
+type ThemeOption = 'light' | 'dark' | 'system';
+type DensityOption = 'compact' | 'default' | 'relaxed';
 
 export default function AppearanceSettingsScreen() {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const [activeDensity, setActiveDensity] = useState('Default');
+  const [activeTheme, setActiveTheme] = useState<ThemeOption>('light');
+  const [activeDensity, setActiveDensity] = useState<DensityOption>('default');
+
+  useEffect(() => {
+    let isActive = true;
+
+    (async () => {
+      try {
+        setIsLoading(true);
+        const settings = await fetchUserSettings();
+
+        if (!isActive) {
+          return;
+        }
+
+        setActiveTheme(settings.appearance.theme);
+        setActiveDensity(settings.appearance.sidebarDensity);
+        setLoadError('');
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        setLoadError(error instanceof Error ? error.message : 'Failed to load appearance settings.');
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const toggleSidebar = () => {
     const toValue = isSidebarOpen ? 0 : 1;
-    if (!isSidebarOpen) setIsSidebarOpen(true);
-    
+    if (!isSidebarOpen) {
+      setIsSidebarOpen(true);
+    }
+
     Animated.timing(slideAnim, {
       toValue,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      if (isSidebarOpen) setIsSidebarOpen(false);
+      if (isSidebarOpen) {
+        setIsSidebarOpen(false);
+      }
     });
   };
+
+  async function handleSave() {
+    try {
+      setIsSaving(true);
+      await updateAppearanceSettings({
+        theme: activeTheme,
+        sidebarDensity: activeDensity,
+      });
+      Alert.alert('Appearance saved', 'Your appearance settings have been updated.');
+    } catch (error) {
+      Alert.alert(
+        'Save failed',
+        error instanceof Error ? error.message : 'Please try again.'
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
       <DashboardHeader title="Settings" onOpenSidebar={toggleSidebar} />
 
-      <ScrollView 
+      <ScrollView
         style={styles.mainScroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+        contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerSection}>
           <Text style={styles.pageTitle}>Settings</Text>
           <Text style={styles.pageSubtitle}>
@@ -43,7 +115,6 @@ export default function AppearanceSettingsScreen() {
           </Text>
         </View>
 
-        {/* Navigation Card */}
         <View style={styles.navCard}>
           <Pressable style={styles.navItem} onPress={() => router.push('/settings' as any)}>
             <View style={styles.navIconBox}>
@@ -90,7 +161,6 @@ export default function AppearanceSettingsScreen() {
           </View>
         </View>
 
-        {/* Appearance Settings Card */}
         <View style={styles.appearanceCard}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderIcon}>
@@ -105,90 +175,138 @@ export default function AppearanceSettingsScreen() {
           <View style={styles.divider} />
 
           <View style={styles.cardContent}>
-            
-            {/* Theme Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>THEME</Text>
-              
-              <View style={styles.themeOptionsContainer}>
-                {/* Light Theme (Active) */}
-                <Pressable style={[styles.themeOption, styles.themeOptionActive]}>
-                  <View style={styles.themePreviewLight}>
-                    <View style={styles.themePreviewLightInner} />
+            {loadError ? (
+              <View style={styles.noticeBox}>
+                <Feather name="alert-circle" size={16} color="#B45309" />
+                <Text style={styles.noticeText}>{loadError}</Text>
+              </View>
+            ) : null}
+
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#2563EB" />
+                <Text style={styles.loadingText}>Loading appearance settings...</Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>THEME</Text>
+
+                  <View style={styles.themeOptionsContainer}>
+                    <Pressable
+                      style={[
+                        styles.themeOption,
+                        activeTheme === 'light' && styles.themeOptionActive,
+                      ]}
+                      onPress={() => setActiveTheme('light')}>
+                      <View style={styles.themePreviewLight}>
+                        <View style={styles.themePreviewLightInner} />
+                      </View>
+                      <Text
+                        style={
+                          activeTheme === 'light'
+                            ? styles.themeOptionTextActive
+                            : styles.themeOptionText
+                        }>
+                        Light
+                      </Text>
+                      {activeTheme === 'light' ? (
+                        <Feather name="check" size={16} color="#2563EB" style={styles.checkIcon} />
+                      ) : null}
+                    </Pressable>
+
+                    <View style={styles.themeOption}>
+                      <View style={styles.themePreviewDark} />
+                      <Text style={styles.themeOptionText}>Dark</Text>
+                      <Text style={styles.themeOptionComingSoon}>Coming{'\n'}soon</Text>
+                    </View>
+
+                    <View style={styles.themeOption}>
+                      <LinearGradient
+                        colors={['#E2E8F0', '#94A3B8']}
+                        style={styles.themePreviewSystem}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                      />
+                      <Text style={styles.themeOptionText}>System</Text>
+                      <Text style={styles.themeOptionComingSoon}>Coming{'\n'}soon</Text>
+                    </View>
                   </View>
-                  <Text style={styles.themeOptionTextActive}>Light</Text>
-                  <Feather name="check" size={16} color="#2563EB" style={styles.checkIcon} />
-                </Pressable>
-
-                {/* Dark Theme (Inactive) */}
-                <View style={styles.themeOption}>
-                  <View style={styles.themePreviewDark} />
-                  <Text style={styles.themeOptionText}>Dark</Text>
-                  <Text style={styles.themeOptionComingSoon}>Coming{'\n'}soon</Text>
                 </View>
 
-                {/* System Theme (Inactive) */}
-                <View style={styles.themeOption}>
-                  <LinearGradient
-                    colors={['#E2E8F0', '#94A3B8']}
-                    style={styles.themePreviewSystem}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  />
-                  <Text style={styles.themeOptionText}>System</Text>
-                  <Text style={styles.themeOptionComingSoon}>Coming{'\n'}soon</Text>
+                <View style={styles.dividerLight} />
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>SIDEBAR DENSITY</Text>
+
+                  <View style={styles.densityOptionsContainer}>
+                    <Pressable
+                      style={[
+                        styles.densityOption,
+                        activeDensity === 'compact' && styles.densityOptionActive,
+                      ]}
+                      onPress={() => setActiveDensity('compact')}>
+                      <Text
+                        style={[
+                          styles.densityOptionText,
+                          activeDensity === 'compact' && styles.densityOptionTextActive,
+                        ]}>
+                        Compact
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={[
+                        styles.densityOption,
+                        activeDensity === 'default' && styles.densityOptionActive,
+                      ]}
+                      onPress={() => setActiveDensity('default')}>
+                      <Text
+                        style={[
+                          styles.densityOptionText,
+                          activeDensity === 'default' && styles.densityOptionTextActive,
+                        ]}>
+                        Default
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={[
+                        styles.densityOption,
+                        activeDensity === 'relaxed' && styles.densityOptionActive,
+                      ]}
+                      onPress={() => setActiveDensity('relaxed')}>
+                      <Text
+                        style={[
+                          styles.densityOptionText,
+                          activeDensity === 'relaxed' && styles.densityOptionTextActive,
+                        ]}>
+                        Relaxed
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
-              </View>
-            </View>
+              </>
+            )}
+          </View>
 
-            <View style={styles.dividerLight} />
-
-            {/* Sidebar Density Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>SIDEBAR DENSITY</Text>
-              
-              <View style={styles.densityOptionsContainer}>
-                <Pressable 
-                  style={[styles.densityOption, activeDensity === 'Compact' && styles.densityOptionActive]}
-                  onPress={() => setActiveDensity('Compact')}
-                >
-                  <Text style={[styles.densityOptionText, activeDensity === 'Compact' && styles.densityOptionTextActive]}>
-                    Compact
-                  </Text>
-                </Pressable>
-
-                <Pressable 
-                  style={[styles.densityOption, activeDensity === 'Default' && styles.densityOptionActive]}
-                  onPress={() => setActiveDensity('Default')}
-                >
-                  <Text style={[styles.densityOptionText, activeDensity === 'Default' && styles.densityOptionTextActive]}>
-                    Default
-                  </Text>
-                </Pressable>
-
-                <Pressable 
-                  style={[styles.densityOption, activeDensity === 'Relaxed' && styles.densityOptionActive]}
-                  onPress={() => setActiveDensity('Relaxed')}
-                >
-                  <Text style={[styles.densityOptionText, activeDensity === 'Relaxed' && styles.densityOptionTextActive]}>
-                    Relaxed
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-
+          <View style={styles.saveBtnContainer}>
+            <Pressable
+              style={[styles.saveBtn, (isSaving || isLoading) && styles.saveBtnDisabled]}
+              disabled={isSaving || isLoading}
+              onPress={handleSave}>
+              <Feather name="save" size={16} color="#FFFFFF" />
+              <Text style={styles.saveBtnText}>
+                {isSaving ? 'Saving...' : 'Save Appearance'}
+              </Text>
+            </Pressable>
           </View>
         </View>
-
       </ScrollView>
 
-      {isSidebarOpen && (
-        <Sidebar 
-          isOpen={isSidebarOpen} 
-          onClose={toggleSidebar} 
-          slideAnim={slideAnim} 
-        />
-      )}
+      {isSidebarOpen ? (
+        <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} slideAnim={slideAnim} />
+      ) : null}
     </View>
   );
 }
@@ -307,6 +425,34 @@ const styles = StyleSheet.create({
   cardContent: {
     padding: 24,
   },
+  noticeBox: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    marginBottom: 16,
+  },
+  noticeText: {
+    flex: 1,
+    color: '#92400E',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+    gap: 12,
+  },
+  loadingText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   section: {
     marginBottom: 24,
   },
@@ -324,7 +470,7 @@ const styles = StyleSheet.create({
   },
   themeOption: {
     flex: 1,
-    aspectRatio: 0.65, // Adjust for taller boxes
+    aspectRatio: 0.65,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -335,7 +481,7 @@ const styles = StyleSheet.create({
   },
   themeOptionActive: {
     borderColor: '#2563EB',
-    backgroundColor: '#F8FAFC', // Slightly distinct background
+    backgroundColor: '#F8FAFC',
   },
   themePreviewLight: {
     width: 60,
@@ -418,5 +564,29 @@ const styles = StyleSheet.create({
   },
   densityOptionTextActive: {
     color: '#FFFFFF',
+  },
+  saveBtnContainer: {
+    padding: 24,
+    paddingTop: 0,
+    alignItems: 'center',
+  },
+  saveBtn: {
+    backgroundColor: '#2563EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 8,
+    width: '100%',
+  },
+  saveBtnDisabled: {
+    opacity: 0.7,
+  },
+  saveBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

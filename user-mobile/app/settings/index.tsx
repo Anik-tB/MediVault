@@ -1,53 +1,186 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Animated } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { updateProfile as updateFirebaseProfile } from '@firebase/auth';
 import { useRouter } from 'expo-router';
-import { Palette } from '@/constants/theme';
+import { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Sidebar } from '@/components/dashboard/Sidebar';
+import { Palette } from '@/constants/theme';
+import { useAuth } from '@/hooks/use-auth';
+import { fetchUserProfile, updateUserProfile, UserProfile } from '@/services/profile';
+
+function applyProfileToForm(nextProfile: UserProfile, setForm: {
+  setProfile: (value: UserProfile) => void;
+  setFirstName: (value: string) => void;
+  setLastName: (value: string) => void;
+  setEmail: (value: string) => void;
+  setPhone: (value: string) => void;
+  setDepartment: (value: string) => void;
+  setBloodGroup: (value: string) => void;
+  setAllergies: (value: string) => void;
+}) {
+  setForm.setProfile(nextProfile);
+  setForm.setFirstName(nextProfile.firstName);
+  setForm.setLastName(nextProfile.lastName);
+  setForm.setEmail(nextProfile.email);
+  setForm.setPhone(nextProfile.phone);
+  setForm.setDepartment(nextProfile.department);
+  setForm.setBloodGroup(nextProfile.bloodGroup);
+  setForm.setAllergies(nextProfile.allergies);
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  // Form states
-  const [firstName, setFirstName] = useState('Sayem');
-  const [lastName, setLastName] = useState('Anik');
-  const [email, setEmail] = useState('anik@medivault.com');
-  const [phone, setPhone] = useState('01871745957');
-  const [department, setDepartment] = useState('Pharmacy & Dispensary');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [department, setDepartment] = useState('');
+  const [bloodGroup, setBloodGroup] = useState('');
+  const [allergies, setAllergies] = useState('');
+
+  useEffect(() => {
+    let isActive = true;
+
+    (async () => {
+      try {
+        setIsLoading(true);
+        const nextProfile = await fetchUserProfile();
+
+        if (!isActive) {
+          return;
+        }
+
+        applyProfileToForm(nextProfile, {
+          setProfile,
+          setFirstName,
+          setLastName,
+          setEmail,
+          setPhone,
+          setDepartment,
+          setBloodGroup,
+          setAllergies,
+        });
+        setLoadError('');
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        setLoadError(error instanceof Error ? error.message : 'Failed to load profile settings.');
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const toggleSidebar = () => {
     const toValue = isSidebarOpen ? 0 : 1;
-    if (!isSidebarOpen) setIsSidebarOpen(true);
-    
+    if (!isSidebarOpen) {
+      setIsSidebarOpen(true);
+    }
+
     Animated.timing(slideAnim, {
       toValue,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      if (isSidebarOpen) setIsSidebarOpen(false);
+      if (isSidebarOpen) {
+        setIsSidebarOpen(false);
+      }
     });
   };
+
+  async function handleSave() {
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
+    const fullName = [trimmedFirstName, trimmedLastName].filter(Boolean).join(' ').trim();
+
+    if (!fullName) {
+      Alert.alert('Missing name', 'Please enter at least a first name before saving.');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      if (user && fullName !== (user.displayName || '').trim()) {
+        await updateFirebaseProfile(user, { displayName: fullName });
+      }
+
+      const updatedProfile = await updateUserProfile({
+        firstName: trimmedFirstName,
+        lastName: trimmedLastName,
+        phone,
+        department,
+        bloodGroup,
+        allergies,
+      });
+
+      applyProfileToForm(updatedProfile, {
+        setProfile,
+        setFirstName,
+        setLastName,
+        setEmail,
+        setPhone,
+        setDepartment,
+        setBloodGroup,
+        setAllergies,
+      });
+
+      Alert.alert('Settings saved', 'Your profile information has been updated.');
+    } catch (error) {
+      Alert.alert(
+        'Save failed',
+        error instanceof Error ? error.message : 'Please try again.'
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ').trim() || 'User';
+  const initial = displayName.charAt(0).toUpperCase() || 'U';
+  const roleLabel = profile?.role === 'admin' ? 'Administrator' : 'Member Account';
 
   return (
     <View style={styles.container}>
       <DashboardHeader title="Settings" onOpenSidebar={toggleSidebar} />
 
-      <ScrollView 
+      <ScrollView
         style={styles.mainScroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+        contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerSection}>
           <Text style={styles.pageTitle}>Settings</Text>
-          <Text style={styles.pageSubtitle}>
-            Manage your account and system preferences
-          </Text>
+          <Text style={styles.pageSubtitle}>Manage your account and system preferences</Text>
         </View>
 
-        {/* Navigation Card */}
         <View style={styles.navCard}>
           <View style={[styles.navItem, styles.navItemActive]}>
             <View style={[styles.navIconBox, styles.navIconBoxActive]}>
@@ -55,7 +188,9 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.navTextContainer}>
               <Text style={[styles.navTitle, styles.navTitleActive]}>Profile</Text>
-              <Text style={[styles.navSubtitle, styles.navSubtitleActive]}>Personal information</Text>
+              <Text style={[styles.navSubtitle, styles.navSubtitleActive]}>
+                Personal information
+              </Text>
             </View>
             <Feather name="chevron-right" size={20} color="#FFFFFF" />
           </View>
@@ -94,7 +229,6 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
-        {/* Profile Settings Card */}
         <View style={styles.profileCard}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderIcon}>
@@ -108,100 +242,137 @@ export default function SettingsScreen() {
 
           <View style={styles.divider} />
 
-          {/* User Info Section */}
-          <View style={styles.userInfoSection}>
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>A</Text>
+          {loadError ? (
+            <View style={styles.noticeBox}>
+              <Feather name="alert-circle" size={16} color="#B45309" />
+              <Text style={styles.noticeText}>{loadError}</Text>
+            </View>
+          ) : null}
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#2563EB" />
+              <Text style={styles.loadingText}>Loading profile settings...</Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.userInfoSection}>
+                <View style={styles.avatarContainer}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{initial}</Text>
+                  </View>
+                  <View style={styles.cameraBadge}>
+                    <Feather name="camera" size={12} color="#FFFFFF" />
+                  </View>
+                </View>
+                <View style={styles.userDetails}>
+                  <Text style={styles.userName}>{displayName}</Text>
+                  <Text style={styles.userRole}>{roleLabel}</Text>
+                  <View style={styles.statusBadge}>
+                    <View style={styles.statusDot} />
+                    <Text style={styles.statusText}>Synced</Text>
+                  </View>
+                </View>
               </View>
-              <View style={styles.cameraBadge}>
-                <Feather name="camera" size={12} color="#FFFFFF" />
+
+              <View style={styles.formContainer}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>FIRST NAME</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    placeholder="First Name"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>LAST NAME</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={lastName}
+                    onChangeText={setLastName}
+                    placeholder="Last Name"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
+                  <TextInput
+                    style={[styles.input, styles.inputDisabled]}
+                    value={email}
+                    editable={false}
+                    selectTextOnFocus={false}
+                    placeholder="Email Address"
+                  />
+                  <Text style={styles.helperText}>Email is managed by your sign-in provider.</Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>PHONE NUMBER</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                    placeholder="Phone Number"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>DEPARTMENT</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={department}
+                    onChangeText={setDepartment}
+                    placeholder="Department"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>BLOOD GROUP</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={bloodGroup}
+                    onChangeText={setBloodGroup}
+                    placeholder="e.g. O+"
+                    autoCapitalize="characters"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>ALLERGIES</Text>
+                  <TextInput
+                    style={[styles.input, styles.inputMultiline]}
+                    value={allergies}
+                    onChangeText={setAllergies}
+                    placeholder="List any known allergies"
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+                </View>
               </View>
-            </View>
-            <View style={styles.userDetails}>
-              <Text style={styles.userName}>Anik</Text>
-              <Text style={styles.userRole}>System Administrator</Text>
-              <View style={styles.statusBadge}>
-                <View style={styles.statusDot} />
-                <Text style={styles.statusText}>Active</Text>
+
+              <View style={styles.saveBtnContainer}>
+                <Pressable
+                  style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]}
+                  disabled={isSaving}
+                  onPress={handleSave}>
+                  <Feather name="save" size={16} color="#FFFFFF" />
+                  <Text style={styles.saveBtnText}>
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </Text>
+                </Pressable>
               </View>
-            </View>
-          </View>
-
-          {/* Form Fields */}
-          <View style={styles.formContainer}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>FIRST NAME</Text>
-              <TextInput
-                style={styles.input}
-                value={firstName}
-                onChangeText={setFirstName}
-                placeholder="First Name"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>LAST NAME</Text>
-              <TextInput
-                style={styles.input}
-                value={lastName}
-                onChangeText={setLastName}
-                placeholder="Last Name"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholder="Email Address"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>PHONE NUMBER</Text>
-              <TextInput
-                style={styles.input}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                placeholder="Phone Number"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>DEPARTMENT</Text>
-              <TextInput
-                style={styles.input}
-                value={department}
-                onChangeText={setDepartment}
-                placeholder="Department"
-              />
-            </View>
-          </View>
-
-          {/* Save Button */}
-          <View style={styles.saveBtnContainer}>
-            <Pressable style={styles.saveBtn}>
-              <Feather name="save" size={16} color="#FFFFFF" />
-              <Text style={styles.saveBtnText}>Save Changes</Text>
-            </Pressable>
-          </View>
+            </>
+          )}
         </View>
-
       </ScrollView>
 
-      {isSidebarOpen && (
-        <Sidebar 
-          isOpen={isSidebarOpen} 
-          onClose={toggleSidebar} 
-          slideAnim={slideAnim} 
-        />
-      )}
+      {isSidebarOpen ? (
+        <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} slideAnim={slideAnim} />
+      ) : null}
     </View>
   );
 }
@@ -209,7 +380,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Palette.background, // Should be '#F8FAFC' typically
+    backgroundColor: Palette.background,
   },
   mainScroll: {
     flex: 1,
@@ -261,7 +432,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   navIconBoxActive: {
-    backgroundColor: '#3B82F6', // Lighter blue for active icon box
+    backgroundColor: '#3B82F6',
   },
   navTextContainer: {
     flex: 1,
@@ -317,6 +488,35 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#F1F5F9',
   },
+  noticeBox: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+  },
+  noticeText: {
+    flex: 1,
+    color: '#92400E',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  loadingContainer: {
+    paddingVertical: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   userInfoSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -330,7 +530,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 20,
-    backgroundColor: '#06B6D4', // Cyan
+    backgroundColor: '#06B6D4',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -404,14 +604,25 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   input: {
-    height: 52,
+    minHeight: 52,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 12,
     paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 15,
     color: Palette.text,
+  },
+  inputDisabled: {
+    color: '#94A3B8',
+  },
+  inputMultiline: {
+    minHeight: 108,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#94A3B8',
   },
   saveBtnContainer: {
     padding: 24,
@@ -427,6 +638,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 12,
     gap: 8,
+  },
+  saveBtnDisabled: {
+    opacity: 0.7,
   },
   saveBtnText: {
     color: '#FFFFFF',

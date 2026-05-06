@@ -1,45 +1,130 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Animated, TextInput } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  Alert,
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+} from '@firebase/auth';
 import { useRouter } from 'expo-router';
-import { Palette } from '@/constants/theme';
+
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Sidebar } from '@/components/dashboard/Sidebar';
+import { Palette } from '@/constants/theme';
+import { useAuth } from '@/hooks/use-auth';
+
+function validatePassword(password: string) {
+  return (
+    password.length >= 8 &&
+    /[a-z]/.test(password) &&
+    /[A-Z]/.test(password) &&
+    /\d/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  );
+}
 
 export default function SecuritySettingsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
 
   const toggleSidebar = () => {
     const toValue = isSidebarOpen ? 0 : 1;
-    if (!isSidebarOpen) setIsSidebarOpen(true);
-    
+    if (!isSidebarOpen) {
+      setIsSidebarOpen(true);
+    }
+
     Animated.timing(slideAnim, {
       toValue,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      if (isSidebarOpen) setIsSidebarOpen(false);
+      if (isSidebarOpen) {
+        setIsSidebarOpen(false);
+      }
     });
   };
+
+  async function handleUpdatePassword() {
+    if (!user || !user.email) {
+      Alert.alert('Unavailable', 'You need to be signed in with an email account to update a password.');
+      return;
+    }
+
+    const usesPasswordSignIn = user.providerData.some(
+      (provider) => provider.providerId === 'password'
+    );
+
+    if (!usesPasswordSignIn) {
+      Alert.alert(
+        'Unavailable',
+        'Password changes are currently supported only for email/password accounts.'
+      );
+      return;
+    }
+
+    if (!currentPassword) {
+      Alert.alert('Missing password', 'Enter your current password first.');
+      return;
+    }
+
+    if (!validatePassword(newPassword)) {
+      Alert.alert(
+        'Weak password',
+        'Use at least 8 characters with uppercase, lowercase, a number, and a special character.'
+      );
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Passwords do not match', 'Enter the same new password in both fields.');
+      return;
+    }
+
+    try {
+      setIsUpdatingPassword(true);
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      Alert.alert('Password updated', 'Your password has been changed successfully.');
+    } catch (error) {
+      Alert.alert(
+        'Update failed',
+        error instanceof Error ? error.message : 'Please try again.'
+      );
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
       <DashboardHeader title="Settings" onOpenSidebar={toggleSidebar} />
 
-      <ScrollView 
+      <ScrollView
         style={styles.mainScroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+        contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerSection}>
           <Text style={styles.pageTitle}>Settings</Text>
           <Text style={styles.pageSubtitle}>
@@ -47,7 +132,6 @@ export default function SecuritySettingsScreen() {
           </Text>
         </View>
 
-        {/* Navigation Card */}
         <View style={styles.navCard}>
           <Pressable style={styles.navItem} onPress={() => router.push('/settings' as any)}>
             <View style={styles.navIconBox}>
@@ -77,7 +161,9 @@ export default function SecuritySettingsScreen() {
             </View>
             <View style={styles.navTextContainer}>
               <Text style={[styles.navTitle, styles.navTitleActive]}>Security</Text>
-              <Text style={[styles.navSubtitle, styles.navSubtitleActive]}>Password & access</Text>
+              <Text style={[styles.navSubtitle, styles.navSubtitleActive]}>
+                Password & access
+              </Text>
             </View>
             <Feather name="chevron-right" size={20} color="#FFFFFF" />
           </View>
@@ -94,7 +180,6 @@ export default function SecuritySettingsScreen() {
           </Pressable>
         </View>
 
-        {/* Security Settings Card */}
         <View style={styles.securityCard}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderIcon}>
@@ -109,7 +194,6 @@ export default function SecuritySettingsScreen() {
           <View style={styles.divider} />
 
           <View style={styles.cardContent}>
-            {/* Form Fields */}
             <View style={styles.formContainer}>
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>CURRENT PASSWORD</Text>
@@ -122,7 +206,7 @@ export default function SecuritySettingsScreen() {
                     secureTextEntry={!showCurrent}
                   />
                   <Pressable onPress={() => setShowCurrent(!showCurrent)} style={styles.eyeIcon}>
-                    <Feather name={showCurrent ? "eye-off" : "eye"} size={18} color="#94A3B8" />
+                    <Feather name={showCurrent ? 'eye-off' : 'eye'} size={18} color="#94A3B8" />
                   </Pressable>
                 </View>
               </View>
@@ -138,7 +222,7 @@ export default function SecuritySettingsScreen() {
                     secureTextEntry={!showNew}
                   />
                   <Pressable onPress={() => setShowNew(!showNew)} style={styles.eyeIcon}>
-                    <Feather name={showNew ? "eye-off" : "eye"} size={18} color="#94A3B8" />
+                    <Feather name={showNew ? 'eye-off' : 'eye'} size={18} color="#94A3B8" />
                   </Pressable>
                 </View>
               </View>
@@ -150,55 +234,57 @@ export default function SecuritySettingsScreen() {
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="Re-enter new password"
-                  secureTextEntry={true}
+                  secureTextEntry
                 />
               </View>
             </View>
 
-            {/* Password Requirements Box */}
             <View style={styles.requirementsBox}>
               <Text style={styles.requirementsTitle}>PASSWORD REQUIREMENTS</Text>
-              
+
               <View style={styles.requirementItem}>
                 <Feather name="check" size={16} color="#10B981" />
                 <Text style={styles.requirementText}>At least 8 characters long</Text>
               </View>
-              
+
               <View style={styles.requirementItem}>
                 <Feather name="check" size={16} color="#10B981" />
-                <Text style={styles.requirementText}>Contains uppercase & lowercase letters</Text>
+                <Text style={styles.requirementText}>
+                  Contains uppercase & lowercase letters
+                </Text>
               </View>
-              
+
               <View style={styles.requirementItem}>
                 <Feather name="check" size={16} color="#10B981" />
                 <Text style={styles.requirementText}>Contains at least one number</Text>
               </View>
-              
+
               <View style={styles.requirementItem}>
                 <Feather name="check" size={16} color="#10B981" />
-                <Text style={styles.requirementText}>Contains at least one special character</Text>
+                <Text style={styles.requirementText}>
+                  Contains at least one special character
+                </Text>
               </View>
             </View>
           </View>
 
-          {/* Save Button */}
           <View style={styles.saveBtnContainer}>
-            <Pressable style={styles.saveBtn}>
+            <Pressable
+              style={[styles.saveBtn, isUpdatingPassword && styles.saveBtnDisabled]}
+              disabled={isUpdatingPassword}
+              onPress={handleUpdatePassword}>
               <Feather name="lock" size={16} color="#FFFFFF" />
-              <Text style={styles.saveBtnText}>Update Password</Text>
+              <Text style={styles.saveBtnText}>
+                {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+              </Text>
             </Pressable>
           </View>
         </View>
-
       </ScrollView>
 
-      {isSidebarOpen && (
-        <Sidebar 
-          isOpen={isSidebarOpen} 
-          onClose={toggleSidebar} 
-          slideAnim={slideAnim} 
-        />
-      )}
+      {isSidebarOpen ? (
+        <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} slideAnim={slideAnim} />
+      ) : null}
     </View>
   );
 }
@@ -400,6 +486,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     gap: 8,
+  },
+  saveBtnDisabled: {
+    opacity: 0.7,
   },
   saveBtnText: {
     color: '#FFFFFF',

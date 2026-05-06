@@ -46,6 +46,7 @@ export default function SignUpSecurityScreen() {
 
   const fullName = readParam(params.fullName);
   const email = readParam(params.email);
+  const phone = readParam(params.phone);
   const displayName = fullName || 'Your profile';
   const displaySubtitle = email || 'Complete step 1 first';
   const initial = fullName.charAt(0).toUpperCase() || 'U';
@@ -92,7 +93,7 @@ export default function SignUpSecurityScreen() {
       );
       await updateProfile(result.user, { displayName: fullName.trim() });
       try {
-        await syncUserProfile();
+        await syncUserProfile({ phone });
       } catch (syncError) {
         console.warn('Profile sync failed:', syncError);
       }
