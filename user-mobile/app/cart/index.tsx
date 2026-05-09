@@ -1,14 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Palette } from '@/constants/theme';
 import { DashboardHeader, Sidebar } from '@/components/dashboard/DashboardComponents';
 import { getCartItems, updateCartQuantity, removeFromCart, clearCart } from '@/services/cart';
 import { reserveForPickup } from '@/services/orders';
+import { fetchPrescriptions } from '@/services/prescriptions';
 
 export default function CartScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const isPrescriptionUploaded = params.prescriptionUploaded === 'true';
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -18,6 +21,7 @@ export default function CartScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isReserving, setIsReserving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [showRxModal, setShowRxModal] = useState(false);
 
   useEffect(() => {
     const loadCart = async () => {
@@ -86,6 +90,13 @@ export default function CartScreen() {
   const handleReserveForPickup = async () => {
     setIsReserving(true);
     try {
+      const needsRx = cartItems.some(item => item.rxRequired);
+      if (needsRx && !isPrescriptionUploaded) {
+        setShowRxModal(true);
+        setIsReserving(false);
+        return;
+      }
+
       const result = await reserveForPickup();
       setCartItems([]);
       setSuccessMsg(`Order #${result.order_id} reserved! Your pickup is confirmed.`);
@@ -178,7 +189,7 @@ export default function CartScreen() {
                         <Text style={styles.itemName}>{item.name}</Text>
                         {item.rxRequired && (
                           <View style={styles.rxBadge}>
-                            <Text style={styles.rxBadgeText}>RX REQUIRED</Text>
+                            <Text style={styles.rxBadgeText}>Prescription Required</Text>
                           </View>
                         )}
                       </View>
@@ -282,11 +293,152 @@ export default function CartScreen() {
           <Text style={styles.toastText}>{successMsg}</Text>
         </View>
       )}
+
+      {/* RX Requirement Modal */}
+      <Modal
+        visible={showRxModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowRxModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconWrapper}>
+              <Feather name="file-text" size={32} color="#3B82F6" />
+            </View>
+            <Text style={styles.modalTitle}>Prescription Required</Text>
+            <Text style={styles.modalMessage}>
+              The following medicines require a valid prescription:
+            </Text>
+            <View style={styles.modalMedicineList}>
+              {cartItems.filter(item => item.rxRequired).map((item, index) => (
+                <Text key={item.id} style={[styles.modalMedicineItem, index === cartItems.filter(i => i.rxRequired).length - 1 && { marginBottom: 0 }]}>
+                  • {item.name}
+                </Text>
+              ))}
+            </View>
+            <Text style={styles.modalMessageSecondary}>
+              Please upload your prescription to proceed with the reservation.
+            </Text>
+            
+            <View style={styles.modalActions}>
+              <Pressable 
+                style={styles.modalUploadBtn}
+                onPress={() => {
+                  setShowRxModal(false);
+                  router.push('/prescriptions?from=cart');
+                }}
+              >
+                <Text style={styles.modalUploadBtnText}>Upload Prescription</Text>
+              </Pressable>
+              <Pressable 
+                style={styles.modalCancelBtn}
+                onPress={() => setShowRxModal(false)}
+              >
+                <Text style={styles.modalCancelBtnText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  modalMedicineList: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  modalMedicineItem: {
+    fontSize: 14,
+    color: '#475569',
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  modalMessageSecondary: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalActions: {
+    width: '100%',
+    gap: 12,
+  },
+  modalUploadBtn: {
+    backgroundColor: '#2563EB',
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+    width: '100%',
+  },
+  modalUploadBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  modalCancelBtn: {
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+    width: '100%',
+  },
+  modalCancelBtnText: {
+    color: '#475569',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
     backgroundColor: Palette.background,

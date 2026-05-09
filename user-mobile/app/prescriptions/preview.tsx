@@ -14,20 +14,47 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Palette } from '@/constants/theme';
 import { DashboardHeader, Sidebar } from '@/components/dashboard/DashboardComponents';
 import { submitPrescription } from '@/services/prescriptions';
+import * as DocumentPicker from 'expo-document-picker';
 
 export default function PrescriptionsPreviewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const previewFile = {
-    fileName: (params.fileName as string) || 'unknown_file',
-    fileType: (params.fileType as string) || 'application/octet-stream',
-    fileSizeBytes: parseInt((params.fileSizeBytes as string) || '0', 10),
-  };
-  const fileUri = params.fileUri as string;
+  const initialFiles = params.files ? JSON.parse(params.files as string) : [];
   
+  const [files, setFiles] = useState<any[]>(initialFiles);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const handleAddAnother = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/jpeg', 'image/png', 'application/pdf'],
+        copyToCacheDirectory: true,
+        multiple: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newFiles = result.assets.map(file => ({
+          fileName: file.name,
+          fileType: file.mimeType || 'application/octet-stream',
+          fileSizeBytes: file.size ? file.size.toString() : '0',
+          fileUri: file.uri,
+        }));
+        setFiles(prev => [...prev, ...newFiles]);
+      }
+    } catch (err) {
+      console.log('Error picking document', err);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    if (files.length === 1) {
+      router.push(`/prescriptions${params.from ? `?from=${params.from}` : ''}` as any);
+    } else {
+      setFiles(prev => prev.filter((_, i) => i !== index));
+    }
+  };
 
   const toggleSidebar = () => {
     const toValue = isSidebarOpen ? 0 : 1;
@@ -47,18 +74,24 @@ export default function PrescriptionsPreviewScreen() {
   };
 
   async function handleSubmit() {
+    if (files.length === 0) return;
     try {
       setIsSubmitting(true);
-      const prescription = await submitPrescription({
-        fileName: previewFile.fileName,
-        fileType: previewFile.fileType,
-        fileSizeBytes: previewFile.fileSizeBytes,
-        fileUri: fileUri,
-      });
+      const trackingIds = [];
+      for (const file of files) {
+        const prescription = await submitPrescription({
+          fileName: file.fileName,
+          fileType: file.fileType,
+          fileSizeBytes: parseInt(file.fileSizeBytes, 10),
+          fileUri: file.fileUri,
+        });
+        trackingIds.push(prescription.trackingId);
+      }
       router.replace({
         pathname: '/prescriptions/success',
         params: {
-          prescriptionId: prescription.trackingId,
+          prescriptionId: trackingIds.join(', '),
+          from: params.from,
         },
       });
     } catch (error) {
@@ -68,6 +101,7 @@ export default function PrescriptionsPreviewScreen() {
           prescriptionId: 'Submission failed',
           errorMessage:
             error instanceof Error ? error.message : 'Please try again from the upload screen.',
+          from: params.from,
         },
       });
     } finally {
@@ -114,34 +148,36 @@ export default function PrescriptionsPreviewScreen() {
             </Text>
           </View>
 
-          <View style={styles.fileDetailsBox}>
-            <View style={styles.fileThumbnail}>
-              <Feather name="image" size={24} color="#F59E0B" />
-            </View>
-
-            <View style={styles.fileInfo}>
-              <Text style={styles.fileName}>{previewFile.fileName}</Text>
-              <View style={styles.fileMetaRow}>
-                <Text style={styles.fileMetaText}>
-                  {(previewFile.fileSizeBytes / 1024).toFixed(1)} KB
-                </Text>
-                <View style={styles.metaDivider} />
-                <Text style={styles.fileMetaText}>
-                  {previewFile.fileType.split('/')[1]?.toUpperCase() || 'FILE'}
-                </Text>
+          {files.map((file, index) => (
+            <View key={index} style={[styles.fileDetailsBox, index === files.length - 1 ? {marginBottom: 24} : {marginBottom: 12}]}>
+              <View style={styles.fileThumbnail}>
+                <Feather name="image" size={24} color="#F59E0B" />
               </View>
-              <View style={styles.fileStatusRow}>
-                <Feather name="check-circle" size={14} color="#10B981" />
-                <Text style={styles.fileStatusText}>File validated successfully</Text>
-              </View>
-            </View>
 
-            <Pressable
-              style={styles.deleteButton}
-              onPress={() => router.push('/prescriptions' as any)}>
-              <Feather name="trash-2" size={18} color="#94A3B8" />
-            </Pressable>
-          </View>
+              <View style={styles.fileInfo}>
+                <Text style={styles.fileName}>{file.fileName}</Text>
+                <View style={styles.fileMetaRow}>
+                  <Text style={styles.fileMetaText}>
+                    {(file.fileSizeBytes / 1024).toFixed(1)} KB
+                  </Text>
+                  <View style={styles.metaDivider} />
+                  <Text style={styles.fileMetaText}>
+                    {file.fileType.split('/')[1]?.toUpperCase() || 'FILE'}
+                  </Text>
+                </View>
+                <View style={styles.fileStatusRow}>
+                  <Feather name="check-circle" size={14} color="#10B981" />
+                  <Text style={styles.fileStatusText}>File validated successfully</Text>
+                </View>
+              </View>
+
+              <Pressable
+                style={styles.deleteButton}
+                onPress={() => handleRemoveFile(index)}>
+                <Feather name="trash-2" size={18} color="#94A3B8" />
+              </Pressable>
+            </View>
+          ))}
 
           <View style={styles.checklistContainer}>
             <View style={styles.checklistItem}>
@@ -165,14 +201,14 @@ export default function PrescriptionsPreviewScreen() {
           <View style={styles.actionButtonsRow}>
             <Pressable
               style={styles.uploadDifferentBtn}
-              onPress={() => router.push('/prescriptions' as any)}>
-              <Text style={styles.uploadDifferentText}>Upload Different{'\n'}File</Text>
+              onPress={handleAddAnother}>
+              <Text style={styles.uploadDifferentText}>Upload Another{'\n'}File</Text>
             </Pressable>
 
             <Pressable
-              style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
+              style={[styles.submitBtn, (isSubmitting || files.length === 0) && styles.submitBtnDisabled]}
               onPress={handleSubmit}
-              disabled={isSubmitting}>
+              disabled={isSubmitting || files.length === 0}>
               {isSubmitting ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (

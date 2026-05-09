@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { Palette } from '@/constants/theme';
@@ -787,7 +787,17 @@ export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
             </View>
           </View>
 
-          <Pressable style={SidebarStyles.signOutBtn} onPress={signOutUser}>
+          <Pressable 
+            style={SidebarStyles.signOutBtn} 
+            onPress={async () => {
+              try {
+                await signOutUser();
+                onClose();
+                router.replace('/login' as any);
+              } catch (error) {
+                Alert.alert('Sign Out Error', 'Failed to sign out. Please try again.');
+              }
+            }}>
             <Feather name="log-out" size={18} color="#94A3B8" />
             <Text style={SidebarStyles.signOutText}>Sign Out</Text>
             <View style={{ flex: 1 }} />

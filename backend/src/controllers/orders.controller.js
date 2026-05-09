@@ -103,8 +103,41 @@ exports.reserveForPickup = async (req, res) => {
     );
 
     if (cartResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Your cart is empty' });
+      // Allow empty cart if recent prescription exists
+      const prescriptionResult = await client.query(
+        `SELECT id, status
+         FROM prescriptions
+         WHERE user_id = $1
+           AND status IN ('submitted', 'under_review', 'approved')
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [user_id]
+      );
+
+      if (prescriptionResult.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Your cart is empty and no recent prescription found.' });
+      }
+
+      const linkedPrescriptionId = prescriptionResult.rows[0].id;
+
+      // Create the order
+      const orderResult = await client.query(
+        `INSERT INTO orders (user_id, status, prescription_id)
+         VALUES ($1, 'pending_pickup', $2)
+         RETURNING *`,
+        [user_id, linkedPrescriptionId]
+      );
+      const order = orderResult.rows[0];
+
+      await client.query('COMMIT');
+
+      return res.status(201).json({
+        message: 'Prescription-only pickup reserved successfully!',
+        order_id: order.id,
+        status: order.status,
+        item_count: 0,
+      });
     }
 
     let linkedPrescriptionId = null;

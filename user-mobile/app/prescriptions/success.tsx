@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, ScrollView, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { Palette } from '@/constants/theme';
 import { DashboardHeader, Sidebar } from '@/components/dashboard/DashboardComponents';
+import { reserveForPickup } from '@/services/orders';
 
 function readParam(value: string | string[] | undefined, fallback = '') {
   if (Array.isArray(value)) {
@@ -22,7 +23,25 @@ export default function PrescriptionsSuccessScreen() {
 
   const prescriptionId = readParam(params.prescriptionId, 'Pending');
   const errorMessage = readParam(params.errorMessage);
+  const from = readParam(params.from);
   const isErrorState = Boolean(errorMessage);
+
+  const [isReserving, setIsReserving] = useState(false);
+  const [isOrderReserved, setIsOrderReserved] = useState(false);
+  const [reserveError, setReserveError] = useState('');
+
+  const handleReserve = async () => {
+    try {
+      setIsReserving(true);
+      setReserveError('');
+      await reserveForPickup();
+      setIsOrderReserved(true);
+    } catch (err: any) {
+      setReserveError(err.message || 'Failed to reserve pickup. Please try again.');
+    } finally {
+      setIsReserving(false);
+    }
+  };
 
   const toggleSidebar = () => {
     const toValue = isSidebarOpen ? 0 : 1;
@@ -111,11 +130,13 @@ export default function PrescriptionsSuccessScreen() {
           </View>
 
           <Text style={styles.successTitle}>
-            {isErrorState ? 'Submission Failed' : 'Prescription Stored'}
+            {isErrorState ? 'Submission Failed' : isOrderReserved ? 'Order Confirmed!' : 'Prescription Stored'}
           </Text>
           <Text style={styles.successSubtitle}>
             {isErrorState
               ? errorMessage
+              : isOrderReserved
+              ? 'Your pickup order has been successfully placed and is pending preparation.'
               : 'Your prescription has been recorded and can now be referenced during future pickup reservations.'}
           </Text>
 
@@ -137,21 +158,53 @@ export default function PrescriptionsSuccessScreen() {
             </View>
           </View>
 
-          <View style={styles.actionButtonsRow}>
-            <Pressable
-              style={styles.uploadAnotherBtn}
-              onPress={() => router.push('/prescriptions' as any)}>
-              <Text style={styles.uploadAnotherText}>
-                {isErrorState ? 'Try Again' : 'Upload Another'}
-              </Text>
-            </Pressable>
+          {reserveError ? (
+            <Text style={{color: '#EF4444', textAlign: 'center', marginBottom: 16}}>{reserveError}</Text>
+          ) : null}
 
-            <Pressable
-              style={styles.goToOrdersBtn}
-              onPress={() => router.push('/orders' as any)}>
-              <Text style={styles.goToOrdersText}>Go to Orders</Text>
-              <Feather name="arrow-right" size={16} color="#FFFFFF" />
-            </Pressable>
+          <View style={styles.actionButtonsRow}>
+            {from !== 'cart' && !isErrorState && !isOrderReserved ? (
+              <>
+                <Pressable
+                  style={styles.uploadAnotherBtn}
+                  onPress={() => router.push('/prescriptions' as any)}>
+                  <Text style={styles.uploadAnotherText}>Upload Another</Text>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.goToOrdersBtn, isReserving && {opacity: 0.7}]}
+                  onPress={handleReserve}
+                  disabled={isReserving}>
+                  {isReserving ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Text style={styles.goToOrdersText}>Reserve for Pickup</Text>
+                      <Feather name="arrow-right" size={16} color="#FFFFFF" />
+                    </>
+                  )}
+                </Pressable>
+              </>
+            ) : (
+              <>
+                {!isOrderReserved && (
+                  <Pressable
+                    style={styles.uploadAnotherBtn}
+                    onPress={() => router.push('/prescriptions' as any)}>
+                    <Text style={styles.uploadAnotherText}>
+                      {isErrorState ? 'Try Again' : 'Upload Another'}
+                    </Text>
+                  </Pressable>
+                )}
+
+                <Pressable
+                  style={[styles.goToOrdersBtn, isOrderReserved && {width: '100%'}]}
+                  onPress={() => router.push((from === 'cart' ? '/cart?prescriptionUploaded=true' : '/orders') as any)}>
+                  <Text style={styles.goToOrdersText}>{from === 'cart' ? 'Return to Cart' : 'Go to Orders'}</Text>
+                  <Feather name="arrow-right" size={16} color="#FFFFFF" />
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
       </ScrollView>

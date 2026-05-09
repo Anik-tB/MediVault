@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { Palette } from '@/constants/theme';
@@ -56,6 +56,7 @@ import * as DocumentPicker from 'expo-document-picker';
 
 export default function PrescriptionsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { initializing, user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
@@ -68,17 +69,22 @@ export default function PrescriptionsScreen() {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['image/jpeg', 'image/png', 'application/pdf'],
         copyToCacheDirectory: true,
+        multiple: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const file = result.assets[0];
+        const files = result.assets.map(file => ({
+          fileName: file.name,
+          fileType: file.mimeType || 'application/octet-stream',
+          fileSizeBytes: file.size ? file.size.toString() : '0',
+          fileUri: file.uri,
+        }));
+        
         router.push({
           pathname: '/prescriptions/preview',
           params: {
-            fileName: file.name,
-            fileType: file.mimeType || 'application/octet-stream',
-            fileSizeBytes: file.size ? file.size.toString() : '0',
-            fileUri: file.uri,
+            files: JSON.stringify(files),
+            from: params.from as string,
           }
         });
       }
