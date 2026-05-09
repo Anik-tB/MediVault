@@ -9,6 +9,39 @@ exports.addToCart = async (req, res) => {
       return res.status(400).json({ error: 'Medicine ID is required' });
     }
 
+    const conflictQuery = `
+      SELECT di.severity, di.clinical_description, m.name as conflicting_medicine
+      FROM drug_interactions di
+      JOIN medicines m ON (m.id = di.medicine_a_id OR m.id = di.medicine_b_id)
+      WHERE (di.medicine_a_id = $1 OR di.medicine_b_id = $1)
+        AND m.id != $1
+        AND (
+          m.id IN (SELECT medicine_id FROM cart_items WHERE user_id = $2)
+          OR
+          m.id IN (
+            SELECT oi.medicine_id 
+            FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id
+            WHERE o.user_id = $2 
+              AND o.status != 'rejected'
+              AND o.created_at >= NOW() - INTERVAL '7 days'
+          )
+        )
+      LIMIT 1
+    `;
+    const conflictResult = await db.query(conflictQuery, [medicine_id, user_id]);
+    
+    if (conflictResult.rows.length > 0) {
+      const conflict = conflictResult.rows[0];
+      return res.status(409).json({
+        error: 'Interaction Warning',
+        severity: conflict.severity,
+        message: `Interaction Warning: Cannot add medication due to a ${conflict.severity} interaction with ${conflict.conflicting_medicine}. ${conflict.clinical_description}`,
+        conflictingMedicine: conflict.conflicting_medicine,
+        clinicalDescription: conflict.clinical_description
+      });
+    }
+
     // Upsert logic: If it exists, add the quantity. Otherwise, insert.
     const query = `
       INSERT INTO cart_items (user_id, medicine_id, quantity)

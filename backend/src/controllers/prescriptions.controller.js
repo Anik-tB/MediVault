@@ -97,9 +97,11 @@ exports.createPrescription = async (req, res) => {
          file_type,
          file_size_bytes,
          storage_url,
-         status
+         status,
+         patient_name,
+         patient_email
        )
-       VALUES ($1, $2, $3, $4, $5, 'submitted')
+       VALUES ($1, $2, $3, $4, $5, 'submitted', $6, $7)
        RETURNING
          id,
          file_name,
@@ -111,7 +113,7 @@ exports.createPrescription = async (req, res) => {
          reviewed_at,
          created_at,
          updated_at`,
-      [req.user.firebase_uid, fileName, fileType, fileSizeBytes, storageUrl]
+      [req.user.firebase_uid, fileName, fileType, fileSizeBytes, storageUrl, userRecord.full_name || req.user.email.split('@')[0], req.user.email]
     );
 
     return res.status(201).json({

@@ -8,7 +8,8 @@ import {
   Pressable, 
   Animated,
   Alert,
-  Platform
+  Platform,
+  Modal
 } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
@@ -139,6 +140,7 @@ export default function SearchMedicinesScreen() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [interactionWarning, setInteractionWarning] = useState<{ visible: boolean; severity: string; message: string; clinicalDescription?: string }>({ visible: false, severity: '', message: '' });
 
   // Fetch medicines from backend
   useEffect(() => {
@@ -181,8 +183,17 @@ export default function SearchMedicinesScreen() {
       setTimeout(() => setToastMessage(null), 3000); // Hide after 3s
 
     } catch (error: any) {
-      setToastMessage(`Error: ${error.message || 'Failed to add to cart.'}`);
-      setTimeout(() => setToastMessage(null), 4000);
+      if (error.isInteractionWarning) {
+        setInteractionWarning({
+          visible: true,
+          severity: error.severity || 'severe',
+          message: error.message,
+          clinicalDescription: error.clinicalDescription
+        });
+      } else {
+        setToastMessage(`Error: ${error.message || 'Failed to add to cart.'}`);
+        setTimeout(() => setToastMessage(null), 4000);
+      }
     }
   };
   
@@ -354,6 +365,41 @@ export default function SearchMedicinesScreen() {
         />
       )}
 
+      {/* Interaction Warning Modal */}
+      <Modal
+        visible={interactionWarning.visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setInteractionWarning(prev => ({ ...prev, visible: false }))}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.modalIconWrapper, { backgroundColor: interactionWarning.severity === 'severe' ? '#FEE2E2' : '#FEF3C7' }]}>
+              <Feather name="alert-triangle" size={32} color={interactionWarning.severity === 'severe' ? '#EF4444' : '#D97706'} />
+            </View>
+            <Text style={styles.modalTitle}>Interaction Warning</Text>
+            <Text style={styles.modalMessage}>
+              {interactionWarning.message}
+            </Text>
+            {interactionWarning.clinicalDescription && (
+              <View style={styles.modalMedicineList}>
+                <Text style={styles.modalMedicineItem}>
+                  {interactionWarning.clinicalDescription}
+                </Text>
+              </View>
+            )}
+            <View style={styles.modalActions}>
+              <Pressable 
+                style={[styles.modalUploadBtn, { backgroundColor: '#F1F5F9' }]}
+                onPress={() => setInteractionWarning(prev => ({ ...prev, visible: false }))}
+              >
+                <Text style={[styles.modalUploadBtnText, { color: '#475569' }]}>Acknowledge</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Custom Toast Notification */}
       {toastMessage && (
         <View style={styles.toastContainer}>
@@ -366,6 +412,80 @@ export default function SearchMedicinesScreen() {
 }
 
 const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  modalMedicineList: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  modalMedicineItem: {
+    fontSize: 14,
+    color: '#475569',
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  modalActions: {
+    width: '100%',
+    gap: 12,
+  },
+  modalUploadBtn: {
+    backgroundColor: '#2563EB',
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+    width: '100%',
+  },
+  modalUploadBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',

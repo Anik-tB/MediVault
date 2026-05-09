@@ -12,7 +12,11 @@ const prescriptionsRoutes = require('./prescriptions.routes');
 const dashboardRoutes = require('./dashboard.routes');
 const notificationsRoutes = require('./notifications.routes');
 
+const adminRoutes = require('./admin.routes');
+
 const router = express.Router();
+
+router.use('/admin', adminRoutes);
 
 router.get('/health', getHealth);
 

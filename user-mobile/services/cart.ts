@@ -23,6 +23,14 @@ export async function addToCart(medicineId: string, quantity: number = 1) {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      if (response.status === 409 && errorData.error === 'Interaction Warning') {
+        const err: any = new Error(errorData.message || 'Interaction Warning');
+        err.isInteractionWarning = true;
+        err.severity = errorData.severity;
+        err.clinicalDescription = errorData.clinicalDescription;
+        err.conflictingMedicine = errorData.conflictingMedicine;
+        throw err;
+      }
       throw new Error(errorData.error || `Error adding to cart: ${response.statusText}`);
     }
 

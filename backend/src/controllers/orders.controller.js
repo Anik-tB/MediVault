@@ -140,6 +140,50 @@ exports.reserveForPickup = async (req, res) => {
       });
     }
 
+
+
+    // Interaction Safety Check
+    const conflictQuery = `
+      SELECT di.severity, di.clinical_description, ma.name as medicine_a_name, mb.name as medicine_b_name
+      FROM drug_interactions di
+      JOIN medicines ma ON ma.id = di.medicine_a_id
+      JOIN medicines mb ON mb.id = di.medicine_b_id
+      WHERE 
+        (
+          -- Check if both are in cart
+          (di.medicine_a_id IN (SELECT medicine_id FROM cart_items WHERE user_id = $1) AND
+           di.medicine_b_id IN (SELECT medicine_id FROM cart_items WHERE user_id = $1))
+          OR
+          -- Check if one is in cart and the other is in recent history
+          (di.medicine_a_id IN (SELECT medicine_id FROM cart_items WHERE user_id = $1) AND
+           di.medicine_b_id IN (
+             SELECT oi.medicine_id FROM order_items oi
+             JOIN orders o ON o.id = oi.order_id
+             WHERE o.user_id = $1 AND o.status != 'rejected' AND o.created_at >= NOW() - INTERVAL '7 days'
+           ))
+          OR
+          (di.medicine_b_id IN (SELECT medicine_id FROM cart_items WHERE user_id = $1) AND
+           di.medicine_a_id IN (
+             SELECT oi.medicine_id FROM order_items oi
+             JOIN orders o ON o.id = oi.order_id
+             WHERE o.user_id = $1 AND o.status != 'rejected' AND o.created_at >= NOW() - INTERVAL '7 days'
+           ))
+        )
+      LIMIT 1
+    `;
+    const conflictResult = await client.query(conflictQuery, [user_id]);
+    
+    if (conflictResult.rows.length > 0) {
+      await client.query('ROLLBACK');
+      const conflict = conflictResult.rows[0];
+      return res.status(409).json({
+        error: 'Interaction Warning',
+        severity: conflict.severity,
+        message: `Interaction Warning: Cannot complete reservation due to a ${conflict.severity} interaction between ${conflict.medicine_a_name} and ${conflict.medicine_b_name}. ${conflict.clinical_description}`,
+        clinicalDescription: conflict.clinical_description
+      });
+    }
+
     let linkedPrescriptionId = null;
 
     // Check if any item requires a prescription
@@ -186,7 +230,16 @@ exports.reserveForPickup = async (req, res) => {
       );
     }
 
-    // 4. Clear the user's cart
+    // 4. Update prescription medicines_text so admin can see what was ordered
+    if (linkedPrescriptionId) {
+      const allNames = cartResult.rows.map(i => i.medicine_name).join(', ');
+      await client.query(
+        `UPDATE prescriptions SET medicines_text = $1 WHERE id = $2 AND (medicines_text IS NULL OR medicines_text = '')`,
+        [allNames, linkedPrescriptionId]
+      );
+    }
+
+    // 5. Clear the user's cart
     await client.query(`DELETE FROM cart_items WHERE user_id = $1`, [user_id]);
 
     await client.query('COMMIT');

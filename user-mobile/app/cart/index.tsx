@@ -22,6 +22,7 @@ export default function CartScreen() {
   const [isReserving, setIsReserving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showRxModal, setShowRxModal] = useState(false);
+  const [interactionWarning, setInteractionWarning] = useState<{ visible: boolean; severity: string; message: string; clinicalDescription?: string }>({ visible: false, severity: '', message: '' });
 
   useEffect(() => {
     const loadCart = async () => {
@@ -102,8 +103,17 @@ export default function CartScreen() {
       setSuccessMsg(`Order #${result.order_id} reserved! Your pickup is confirmed.`);
       setTimeout(() => setSuccessMsg(null), 5000);
     } catch (err: any) {
-      setSuccessMsg(`Error: ${err.message}`);
-      setTimeout(() => setSuccessMsg(null), 6000);
+      if (err.isInteractionWarning) {
+        setInteractionWarning({
+          visible: true,
+          severity: err.severity || 'severe',
+          message: err.message,
+          clinicalDescription: err.clinicalDescription
+        });
+      } else {
+        setSuccessMsg(`Error: ${err.message}`);
+        setTimeout(() => setSuccessMsg(null), 6000);
+      }
     } finally {
       setIsReserving(false);
     }
@@ -336,6 +346,41 @@ export default function CartScreen() {
                 onPress={() => setShowRxModal(false)}
               >
                 <Text style={styles.modalCancelBtnText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Interaction Warning Modal */}
+      <Modal
+        visible={interactionWarning.visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setInteractionWarning(prev => ({ ...prev, visible: false }))}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.modalIconWrapper, { backgroundColor: interactionWarning.severity === 'severe' ? '#FEE2E2' : '#FEF3C7' }]}>
+              <Feather name="alert-triangle" size={32} color={interactionWarning.severity === 'severe' ? '#EF4444' : '#D97706'} />
+            </View>
+            <Text style={styles.modalTitle}>Interaction Warning</Text>
+            <Text style={styles.modalMessage}>
+              {interactionWarning.message}
+            </Text>
+            {interactionWarning.clinicalDescription && (
+              <View style={styles.modalMedicineList}>
+                <Text style={styles.modalMedicineItem}>
+                  {interactionWarning.clinicalDescription}
+                </Text>
+              </View>
+            )}
+            <View style={styles.modalActions}>
+              <Pressable 
+                style={[styles.modalUploadBtn, { backgroundColor: '#F1F5F9' }]}
+                onPress={() => setInteractionWarning(prev => ({ ...prev, visible: false }))}
+              >
+                <Text style={[styles.modalUploadBtnText, { color: '#475569' }]}>Acknowledge</Text>
               </Pressable>
             </View>
           </View>
