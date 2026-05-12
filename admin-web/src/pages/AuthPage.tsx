@@ -157,7 +157,7 @@ export function AuthPage({ onAuthenticated }: { onAuthenticated: (staff: StaffPr
                 <input
                   className="input"
                   type="email"
-                  placeholder="admin@medivault.com"
+                  placeholder="hulahuhu015@gmail.com"
                   value={loginForm.email}
                   required
                   onChange={(event) => setLoginForm((form) => ({ ...form, email: event.target.value }))}
@@ -201,7 +201,7 @@ export function AuthPage({ onAuthenticated }: { onAuthenticated: (staff: StaffPr
                   <div className="form-grid two">
                     <div className="field">
                       <label>Email Address *</label>
-                      <input className="input" type="email" placeholder="you@hospital.org" value={registerForm.email} required onChange={(event) => setRegisterForm((form) => ({ ...form, email: event.target.value }))} />
+                      <input className="input" type="email" placeholder="hulahuhu015@gmail.com" value={registerForm.email} required onChange={(event) => setRegisterForm((form) => ({ ...form, email: event.target.value }))} />
                     </div>
                     <div className="field">
                       <label>Employee ID *</label>

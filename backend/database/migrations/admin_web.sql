@@ -80,7 +80,7 @@ UPDATE medicines SET expiry_date = CASE name
 END
 WHERE expiry_date IS NULL;
 
--- Seed default admin account (logs in via Google: freegeminipro0004@gmail.com)
+-- Seed default admin account (logs in via Google: hulahuhu015@gmail.com)
 -- password_hash is a non-usable placeholder since this account uses Google Sign-In
 INSERT INTO staff_users (
   full_name,
@@ -93,7 +93,7 @@ INSERT INTO staff_users (
   password_salt
 ) VALUES (
   'Admin User',
-  'freegeminipro0004@gmail.com',
+  'hulahuhu015@gmail.com',
   'EMP-0001',
   '',
   'Pharmacy & Dispensary',
