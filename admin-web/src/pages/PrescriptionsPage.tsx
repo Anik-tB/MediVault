@@ -122,15 +122,43 @@ export function PrescriptionsPage({ notify }: { notify: (message: string, tone?:
 
       {preview ? (
         <Modal title="Document Preview" subtitle={preview.fileName} onClose={() => setPreview(null)}>
-          <div className="preview-box">
-            <div>
-              <h3>{preview.fileName}</h3>
-              <p>Patient: {preview.patientName}</p>
-              <p>Submitted: {formatDate(preview.createdAt)}</p>
-              <p>Medicines: {preview.medicines}</p>
-              <p>Document preview not available in demo. In production, image/PDF renders here.</p>
-              {preview.storageUrl ? <a className="primary-button" href={preview.storageUrl} target="_blank" rel="noreferrer">Open Uploaded File</a> : null}
+          <div style={{ display: 'grid', gap: 16 }}>
+            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', color: 'var(--muted)', fontSize: 13 }}>
+              <span><strong>Patient:</strong> {preview.patientName}</span>
+              <span><strong>Email:</strong> {preview.patientEmail}</span>
+              <span><strong>Submitted:</strong> {formatDate(preview.createdAt)}</span>
+              <span><strong>Type:</strong> {preview.documentKind}</span>
             </div>
+
+            {preview.storageUrl ? (
+              <>
+                {preview.fileType.includes('pdf') ? (
+                  <iframe
+                    src={preview.storageUrl}
+                    title={preview.fileName}
+                    style={{ width: '100%', height: 520, border: '1px solid var(--border-soft)', borderRadius: 14 }}
+                  />
+                ) : (
+                  <img
+                    src={preview.storageUrl}
+                    alt={preview.fileName}
+                    style={{ width: '100%', maxHeight: 520, objectFit: 'contain', borderRadius: 14, border: '1px solid var(--border-soft)', background: 'var(--surface-muted)' }}
+                  />
+                )}
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <a className="ghost-button" href={preview.storageUrl} target="_blank" rel="noreferrer">
+                    Open in new tab ↗
+                  </a>
+                </div>
+              </>
+            ) : (
+              <div className="preview-box">
+                <div>
+                  <p style={{ margin: '0 0 8px', fontWeight: 700 }}>No file available</p>
+                  <p style={{ margin: 0, fontSize: 13 }}>This prescription was submitted without a file upload.</p>
+                </div>
+              </div>
+            )}
           </div>
         </Modal>
       ) : null}

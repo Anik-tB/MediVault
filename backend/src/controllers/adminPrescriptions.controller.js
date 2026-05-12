@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const env = require('../config/env');
 const {
   AdminValidationError,
   handleAdminError,
@@ -11,6 +12,14 @@ function mapStatus(status) {
   return status;
 }
 
+function resolveStorageUrl(raw) {
+  if (!raw) return '';
+  // Already an absolute URL — return as-is
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+  // Legacy relative path — prefix with backend base URL
+  return `${env.baseUrl}${raw}`;
+}
+
 function mapPrescription(row) {
   const status = mapStatus(row.status);
   return {
@@ -21,7 +30,7 @@ function mapPrescription(row) {
     fileName: row.file_name,
     fileType: row.file_type,
     fileSizeBytes: Number(row.file_size_bytes || 0),
-    storageUrl: row.storage_url || '',
+    storageUrl: resolveStorageUrl(row.storage_url),
     documentKind: row.file_type?.includes('pdf') ? 'PDF Document' : row.file_type?.includes('jpeg') || row.file_type?.includes('jpg') ? 'JPG Document' : row.file_type?.includes('png') ? 'PNG Document' : 'Document',
     medicines: row.medicines_text || row.linked_medicines || 'Not specified',
     status,
