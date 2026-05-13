@@ -8,9 +8,10 @@ exports.getOrderDetails = async (req, res) => {
 
     // Verify the order belongs to this user, then fetch its items
     const result = await db.query(
-      `SELECT oi.id, oi.medicine_name, oi.quantity, oi.medicine_id
+      `SELECT oi.id, oi.medicine_name, oi.quantity, oi.medicine_id, COALESCE(oid.unit_price, 0.00) as unit_price
        FROM order_items oi
        JOIN orders o ON o.id = oi.order_id
+       LEFT JOIN order_item_details oid ON oid.order_item_id = oi.id
        WHERE oi.order_id = $1 AND o.user_id = $2`,
       [orderId, user_id]
     );
@@ -60,11 +61,13 @@ exports.getOrders = async (req, res) => {
         o.id,
         o.status,
         o.created_at,
-        COUNT(oi.id) AS items_count
+        COUNT(oi.id) AS items_count,
+        COALESCE(od.total_amount, 0.00) AS total_amount
        FROM orders o
        LEFT JOIN order_items oi ON oi.order_id = o.id
+       LEFT JOIN order_details od ON od.order_id = o.id
        WHERE o.user_id = $1
-       GROUP BY o.id
+       GROUP BY o.id, od.total_amount
        ORDER BY o.created_at DESC`,
       [user_id]
     );
@@ -95,9 +98,10 @@ exports.reserveForPickup = async (req, res) => {
 
     // 1. Fetch the user's current cart items (joined with medicine name)
     const cartResult = await client.query(
-      `SELECT c.id as cart_item_id, c.medicine_id, c.quantity, m.name as medicine_name, m.rx as rx_required
+      `SELECT c.id as cart_item_id, c.medicine_id, c.quantity, m.name as medicine_name, m.rx as rx_required, COALESCE(md.price, 0.00) as price
        FROM cart_items c
        JOIN medicines m ON c.medicine_id = m.id
+       LEFT JOIN medicine_details md ON md.medicine_id = m.id
        WHERE c.user_id = $1`,
       [user_id]
     );
@@ -212,22 +216,33 @@ exports.reserveForPickup = async (req, res) => {
       linkedPrescriptionId = prescriptionResult.rows[0].id;
     }
 
-    // 2. Create the order
+    // 2. Calculate Total Amount (Subtotal + 5% VAT)
+    let subtotal = 0;
+    for (const item of cartResult.rows) {
+      subtotal += parseFloat(item.price) * item.quantity;
+    }
+    const totalAmount = parseFloat((subtotal * 1.05).toFixed(2));
+
+    // 3. Create the order
     const orderResult = await client.query(
-      `INSERT INTO orders (user_id, status, prescription_id)
-       VALUES ($1, 'pending_pickup', $2)
+      `INSERT INTO orders (user_id, status, prescription_id, total_amount)
+       VALUES ($1, 'pending_pickup', $2, $3)
        RETURNING *`,
-      [user_id, linkedPrescriptionId]
+      [user_id, linkedPrescriptionId, totalAmount]
     );
     const order = orderResult.rows[0];
 
-    // 3. Insert each cart item into order_items
+    // Save Total Amount to side table for backward compatibility if needed
+    await client.query(`INSERT INTO order_details (order_id, total_amount) VALUES ($1, $2)`, [order.id, totalAmount]);
+
+    // 4. Insert each cart item into order_items
     for (const item of cartResult.rows) {
-      await client.query(
-        `INSERT INTO order_items (order_id, medicine_id, medicine_name, quantity)
-         VALUES ($1, $2, $3, $4)`,
-        [order.id, item.medicine_id, item.medicine_name, item.quantity]
+      const oiResult = await client.query(
+        `INSERT INTO order_items (order_id, medicine_id, medicine_name, quantity, unit_price)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+        [order.id, item.medicine_id, item.medicine_name, item.quantity, item.price]
       );
+      await client.query(`INSERT INTO order_item_details (order_item_id, unit_price) VALUES ($1, $2)`, [oiResult.rows[0].id, item.price]);
     }
 
     // 4. Update prescription medicines_text so admin can see what was ordered

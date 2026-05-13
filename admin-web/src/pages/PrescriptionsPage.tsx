@@ -11,9 +11,9 @@ const statusOptions: { label: string; value: '' | RxStatus }[] = [
   { label: 'Rejected', value: 'rejected' },
 ];
 
-export function PrescriptionsPage({ notify }: { notify: (message: string, tone?: 'success' | 'error') => void }) {
+export function PrescriptionsPage({ notify, initialSearch = '' }: { notify: (message: string, tone?: 'success' | 'error') => void; initialSearch?: string }) {
   const [data, setData] = useState<PrescriptionListResponse | null>(null);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
   const [status, setStatus] = useState('');
   const [preview, setPreview] = useState<Prescription | null>(null);
   const [rejecting, setRejecting] = useState<Prescription | null>(null);

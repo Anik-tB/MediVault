@@ -30,6 +30,8 @@ function mapMedicine(row, interactionCounts = {}) {
     certificate: Boolean(row.certificate),
     status: getStockStatus(stock),
     conflictCount,
+    price: Number(row.price || 0),
+    doseIntervalDays: Number(row.dose_interval_days || 0),
   };
 }
 
@@ -80,9 +82,10 @@ exports.getAdminMedicines = async (req, res) => {
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const [medicineResult, counts] = await Promise.all([
       db.query(
-        `SELECT m.*,
+        `SELECT m.*, md.price, md.dose_interval_days,
            COALESCE(conflict_counts.conflict_count, 0) AS conflict_count
          FROM medicines m
+         LEFT JOIN medicine_details md ON md.medicine_id = m.id
          LEFT JOIN (
            SELECT medicine_id, SUM(count) AS conflict_count
            FROM (
@@ -141,6 +144,12 @@ function readMedicinePayload(body, { partial = false } = {}) {
   if (!partial || body.certificate !== undefined) {
     values.certificate = normalizeBoolean(Boolean(body.certificate), 'Certificate/conflict flag');
   }
+  if (!partial || body.price !== undefined) {
+    values.price = body.price ? parseFloat(body.price) : 0;
+  }
+  if (!partial || body.doseIntervalDays !== undefined) {
+    values.doseIntervalDays = body.doseIntervalDays ? parseInt(body.doseIntervalDays, 10) : 0;
+  }
 
   return values;
 }
@@ -155,10 +164,16 @@ exports.createMedicine = async (req, res) => {
        RETURNING *`,
       [payload.name, payload.category, payload.description, payload.stock, payload.expiryDate, payload.rx, payload.certificate]
     );
+    const newId = result.rows[0].id;
+    await db.query(`INSERT INTO medicine_details (medicine_id, price, dose_interval_days) VALUES ($1, $2, $3)`, [newId, payload.price || 0, payload.doseIntervalDays || 0]);
+
+    const mapped = mapMedicine(result.rows[0]);
+    mapped.price = payload.price || 0;
+    mapped.doseIntervalDays = payload.doseIntervalDays || 0;
 
     return res.status(201).json({
       message: 'Medicine added successfully',
-      medicine: mapMedicine(result.rows[0]),
+      medicine: mapped,
     });
   } catch (error) {
     return handleAdminError(res, error, 'Internal server error while adding medicine');
@@ -168,7 +183,13 @@ exports.createMedicine = async (req, res) => {
 exports.updateMedicine = async (req, res) => {
   try {
     const medicineId = normalizeInteger(req.params.medicineId, { fieldName: 'Medicine ID', min: 1 });
-    const existingResult = await db.query(`SELECT * FROM medicines WHERE id = $1`, [medicineId]);
+    const existingResult = await db.query(
+      `SELECT m.*, md.price, md.dose_interval_days 
+       FROM medicines m 
+       LEFT JOIN medicine_details md ON md.medicine_id = m.id 
+       WHERE m.id = $1`, 
+      [medicineId]
+    );
 
     if (existingResult.rowCount === 0) {
       throw new AdminValidationError('Medicine not found');
@@ -200,9 +221,19 @@ exports.updateMedicine = async (req, res) => {
       ]
     );
 
+    await db.query(`
+      INSERT INTO medicine_details (medicine_id, price, dose_interval_days)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (medicine_id) DO UPDATE SET price = EXCLUDED.price, dose_interval_days = EXCLUDED.dose_interval_days
+    `, [medicineId, payload.price ?? existing.price, payload.doseIntervalDays ?? existing.dose_interval_days]);
+
+    const mapped = mapMedicine(result.rows[0]);
+    mapped.price = payload.price ?? Number(existing.price || 0);
+    mapped.doseIntervalDays = payload.doseIntervalDays ?? Number(existing.dose_interval_days || 0);
+
     return res.status(200).json({
       message: 'Medicine updated successfully',
-      medicine: mapMedicine(result.rows[0]),
+      medicine: mapped,
     });
   } catch (error) {
     return handleAdminError(res, error, 'Internal server error while updating medicine');

@@ -9,6 +9,26 @@ exports.addToCart = async (req, res) => {
       return res.status(400).json({ error: 'Medicine ID is required' });
     }
 
+    const medQuery = `SELECT m.name, md.dose_interval_days FROM medicines m LEFT JOIN medicine_details md ON md.medicine_id = m.id WHERE m.id = $1`;
+    const medRes = await db.query(medQuery, [medicine_id]);
+    if (medRes.rowCount === 0) return res.status(404).json({error: 'Medicine not found'});
+    
+    const doseInterval = medRes.rows[0].dose_interval_days || 0;
+    if (doseInterval > 0) {
+      const doseQuery = `
+        SELECT o.created_at 
+        FROM order_items oi
+        JOIN orders o ON o.id = oi.order_id
+        WHERE o.user_id = $1 AND oi.medicine_id = $2 AND o.status != 'rejected'
+          AND o.created_at >= NOW() - INTERVAL '1 day' * $3
+        LIMIT 1
+      `;
+      const doseRes = await db.query(doseQuery, [user_id, medicine_id, doseInterval]);
+      if (doseRes.rowCount > 0) {
+        return res.status(403).json({ error: `You cannot order ${medRes.rows[0].name} until your ${doseInterval}-day dose is complete.` });
+      }
+    }
+
     const conflictQuery = `
       SELECT di.severity, di.clinical_description, m.name as conflicting_medicine
       FROM drug_interactions di
@@ -75,9 +95,11 @@ exports.getCart = async (req, res) => {
         m.name,
         m.rx as rx_required,
         m.category,
-        m.stock as available
+        m.stock as available,
+        COALESCE(md.price, 0.00) as price
       FROM cart_items c
       JOIN medicines m ON c.medicine_id = m.id
+      LEFT JOIN medicine_details md ON md.medicine_id = m.id
       WHERE c.user_id = $1
       ORDER BY c.created_at DESC;
     `;

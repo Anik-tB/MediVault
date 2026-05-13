@@ -5,6 +5,13 @@ const {
   normalizeInteger,
   normalizeText,
 } = require('../utils/admin.utils');
+const env = require('../config/env');
+
+function resolveStorageUrl(raw) {
+  if (!raw) return '';
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+  return `${env.baseUrl}${raw}`;
+}
 
 function statusLabel(status) {
   const labels = {
@@ -28,9 +35,12 @@ function mapOrder(row) {
     pickupTime: row.pickup_time,
     rejectionReason: row.rejection_reason || '',
     itemsCount: Number(row.items_count || 0),
-    totalUnits: Number(row.total_units || 0),
+    totalAmount: Number(row.total_amount || 0),
     medicines: row.medicines || 'No medicines',
     items: row.items || [],
+    prescriptionId: row.prescription_id,
+    prescriptionUrl: resolveStorageUrl(row.prescription_url),
+    prescriptionStatus: row.prescription_status,
   };
 }
 
@@ -53,15 +63,19 @@ exports.getAdminOrders = async (req, res) => {
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const result = await db.query(
+     const result = await db.query(
       `SELECT
          o.id,
          o.status,
          o.created_at,
          o.pickup_time,
          o.rejection_reason,
+         COALESCE(o.total_amount, od.total_amount, 0.00) AS total_amount,
          COALESCE(u.full_name, p.patient_name, 'Unknown patient') AS patient_name,
          COALESCE(u.email, p.patient_email, '') AS patient_email,
+         o.prescription_id,
+         p.storage_url AS prescription_url,
+         p.status AS prescription_status,
          COUNT(oi.id) AS items_count,
          COALESCE(SUM(oi.quantity), 0) AS total_units,
          COALESCE(STRING_AGG(oi.medicine_name, ', ' ORDER BY oi.id), p.medicines_text, 'No medicines') AS medicines,
@@ -73,7 +87,8 @@ exports.getAdminOrders = async (req, res) => {
                'name', oi.medicine_name,
                'quantity', oi.quantity,
                'category', m.category,
-               'rx', m.rx
+               'rx', m.rx,
+               'unitPrice', COALESCE(oi.unit_price, oid.unit_price, 0.00)
              ) ORDER BY oi.id
            ) FILTER (WHERE oi.id IS NOT NULL),
            '[]'
@@ -83,8 +98,10 @@ exports.getAdminOrders = async (req, res) => {
        LEFT JOIN prescriptions p ON p.id = o.prescription_id
        LEFT JOIN order_items oi ON oi.order_id = o.id
        LEFT JOIN medicines m ON m.id = oi.medicine_id
+       LEFT JOIN order_details od ON od.order_id = o.id
+       LEFT JOIN order_item_details oid ON oid.order_item_id = oi.id
        ${whereClause}
-       GROUP BY o.id, o.status, o.created_at, o.pickup_time, o.rejection_reason, u.full_name, u.email, p.patient_name, p.patient_email, p.medicines_text
+       GROUP BY o.id, o.status, o.created_at, o.pickup_time, o.rejection_reason, o.total_amount, od.total_amount, u.full_name, u.email, p.patient_name, p.patient_email, p.medicines_text, p.storage_url, p.status
        ORDER BY o.created_at DESC`,
       params
     );
@@ -107,6 +124,7 @@ exports.getAdminOrders = async (req, res) => {
 };
 
 exports.approveOrder = async (req, res) => {
+  const client = await db.pool.connect();
   try {
     const orderId = normalizeInteger(req.params.orderId, { fieldName: 'Order ID', min: 1 });
     const pickupTime = normalizeText(req.body?.pickupTime, {
@@ -120,7 +138,15 @@ exports.approveOrder = async (req, res) => {
       throw new AdminValidationError('Pickup time must be a valid date/time');
     }
 
-    const result = await db.query(
+    await client.query('BEGIN');
+
+    const orderRes = await client.query(`SELECT user_id, status FROM orders WHERE id = $1`, [orderId]);
+    if (orderRes.rowCount === 0) {
+      throw new AdminValidationError('Order not found or cannot be approved');
+    }
+    const order = orderRes.rows[0];
+
+    const result = await client.query(
       `UPDATE orders
        SET status = 'ready_for_pickup', pickup_time = $1, rejection_reason = NULL, updated_at = NOW()
        WHERE id = $2 AND status IN ('pending_pickup', 'rejected')
@@ -129,16 +155,36 @@ exports.approveOrder = async (req, res) => {
     );
 
     if (result.rowCount === 0) {
-      throw new AdminValidationError('Order not found or cannot be approved');
+      throw new AdminValidationError('Order cannot be approved from its current state');
     }
+
+    // Deduct stock
+    const items = await client.query(`SELECT medicine_id, quantity FROM order_items WHERE order_id = $1`, [orderId]);
+    for (const item of items.rows) {
+      if (item.medicine_id) {
+        await client.query(`UPDATE medicines SET stock = GREATEST(stock - $1, 0) WHERE id = $2`, [item.quantity, item.medicine_id]);
+      }
+    }
+
+    // Add Notification
+    await client.query(
+      `INSERT INTO notifications (user_id, type, title, message) VALUES ($1, 'order_update', 'Order Approved', $2)`,
+      [order.user_id, `Your order ORD-${String(orderId).padStart(4, '0')} has been approved and is ready for pickup.`]
+    );
+
+    await client.query('COMMIT');
 
     return res.status(200).json({ message: `Order ORD-${String(orderId).padStart(4, '0')} approved` });
   } catch (error) {
+    await client.query('ROLLBACK');
     return handleAdminError(res, error, 'Internal server error while approving order');
+  } finally {
+    client.release();
   }
 };
 
 exports.rejectOrder = async (req, res) => {
+  const client = await db.pool.connect();
   try {
     const orderId = normalizeInteger(req.params.orderId, { fieldName: 'Order ID', min: 1 });
     const reason = normalizeText(req.body?.reason, {
@@ -146,7 +192,13 @@ exports.rejectOrder = async (req, res) => {
       maxLength: 500,
     });
 
-    const result = await db.query(
+    await client.query('BEGIN');
+
+    const orderRes = await client.query(`SELECT user_id, status FROM orders WHERE id = $1`, [orderId]);
+    if (orderRes.rowCount === 0) throw new AdminValidationError('Order not found');
+    const order = orderRes.rows[0];
+
+    const result = await client.query(
       `UPDATE orders
        SET status = 'rejected', rejection_reason = $1, updated_at = NOW()
        WHERE id = $2 AND status IN ('pending_pickup', 'ready_for_pickup')
@@ -158,17 +210,45 @@ exports.rejectOrder = async (req, res) => {
       throw new AdminValidationError('Order not found or cannot be rejected');
     }
 
+    // Restore stock if it was previously ready for pickup
+    if (order.status === 'ready_for_pickup') {
+      const items = await client.query(`SELECT medicine_id, quantity FROM order_items WHERE order_id = $1`, [orderId]);
+      for (const item of items.rows) {
+        if (item.medicine_id) {
+          await client.query(`UPDATE medicines SET stock = stock + $1 WHERE id = $2`, [item.quantity, item.medicine_id]);
+        }
+      }
+    }
+
+    // Add Notification
+    await client.query(
+      `INSERT INTO notifications (user_id, type, title, message) VALUES ($1, 'order_update', 'Order Rejected', $2)`,
+      [order.user_id, `Your order ORD-${String(orderId).padStart(4, '0')} was rejected. Reason: ${reason || 'Not specified'}.`]
+    );
+
+    await client.query('COMMIT');
+
     return res.status(200).json({ message: `Order ORD-${String(orderId).padStart(4, '0')} rejected` });
   } catch (error) {
+    await client.query('ROLLBACK');
     return handleAdminError(res, error, 'Internal server error while rejecting order');
+  } finally {
+    client.release();
   }
 };
 
 exports.markPickedUp = async (req, res) => {
+  const client = await db.pool.connect();
   try {
     const orderId = normalizeInteger(req.params.orderId, { fieldName: 'Order ID', min: 1 });
 
-    const result = await db.query(
+    await client.query('BEGIN');
+
+    const orderRes = await client.query(`SELECT user_id, status FROM orders WHERE id = $1`, [orderId]);
+    if (orderRes.rowCount === 0) throw new AdminValidationError('Order not found');
+    const order = orderRes.rows[0];
+
+    const result = await client.query(
       `UPDATE orders
        SET status = 'completed', updated_at = NOW()
        WHERE id = $1 AND status = 'ready_for_pickup'
@@ -180,8 +260,19 @@ exports.markPickedUp = async (req, res) => {
       throw new AdminValidationError('Order not found or is not ready for pickup');
     }
 
+    // Add Notification
+    await client.query(
+      `INSERT INTO notifications (user_id, type, title, message) VALUES ($1, 'order_update', 'Order Completed', $2)`,
+      [order.user_id, `Your order ORD-${String(orderId).padStart(4, '0')} has been successfully picked up!`]
+    );
+
+    await client.query('COMMIT');
+
     return res.status(200).json({ message: `Order ORD-${String(orderId).padStart(4, '0')} marked as picked up` });
   } catch (error) {
+    await client.query('ROLLBACK');
     return handleAdminError(res, error, 'Internal server error while completing order');
+  } finally {
+    client.release();
   }
 };

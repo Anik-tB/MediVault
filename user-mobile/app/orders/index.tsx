@@ -195,6 +195,7 @@ export default function OrdersScreen() {
                     <View style={[styles.statusDot, { backgroundColor: config.color }]} />
                     <Text style={[styles.statusBadgeText, { color: config.color }]}>{statusLabel}</Text>
                   </View>
+                  <Text style={styles.totalAmount}>৳ {Number(order.total_amount || 0).toFixed(2)}</Text>
                 </View>
 
                 <View style={styles.orderDetailsRow}>
@@ -224,6 +225,7 @@ export default function OrdersScreen() {
                       <View key={idx} style={styles.expandedRow}>
                         <Feather name="package" size={14} color="#2563EB" />
                         <Text style={styles.expandedName}>{item.medicine_name}</Text>
+                        <Text style={styles.expandedPrice}>৳ {Number(item.unit_price || 0).toFixed(2)}</Text>
                         <Text style={styles.expandedQty}>×{item.quantity}</Text>
                       </View>
                     ))}
@@ -437,8 +439,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
   },
   cancelButtonText: {
-    color: '#EF4444',
     fontSize: 13,
     fontWeight: '700',
+  },
+  totalAmount: {
+    marginLeft: 'auto',
+    fontSize: 18,
+    fontWeight: '900',
+    color: Palette.primary,
+  },
+  expandedPrice: {
+    fontSize: 12,
+    color: '#64748B',
+    marginRight: 8,
   },
 });

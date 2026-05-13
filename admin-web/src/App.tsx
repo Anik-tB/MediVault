@@ -44,6 +44,7 @@ type Toast = { message: string; tone: 'success' | 'error' } | null;
 export default function App() {
   const [staff, setStaff] = useState<StaffProfile | null>(null);
   const [page, setPage] = useState<PageKey>('dashboard');
+  const [prescriptionSearch, setPrescriptionSearch] = useState('');
   const [isCheckingSession, setCheckingSession] = useState(Boolean(getStoredToken()));
   const [toast, setToast] = useState<Toast>(null);
 
@@ -72,6 +73,11 @@ export default function App() {
     setPage('dashboard');
   };
 
+  const jumpToPrescriptions = (page: 'prescriptions', search?: string) => {
+    if (search) setPrescriptionSearch(search);
+    setPage(page);
+  };
+
   if (isCheckingSession) {
     return <div className="loading">Restoring staff session...</div>;
   }
@@ -85,8 +91,8 @@ export default function App() {
       <Layout activePage={page} onNavigate={setPage} onSignOut={signOut} staff={staff} title={activeTitle.title} subtitle={activeTitle.subtitle}>
         {page === 'dashboard' ? <DashboardPage onJump={setPage} /> : null}
         {page === 'inventory' ? <InventoryPage notify={notify} /> : null}
-        {page === 'orders' ? <OrdersPage notify={notify} /> : null}
-        {page === 'prescriptions' ? <PrescriptionsPage notify={notify} /> : null}
+        {page === 'orders' ? <OrdersPage notify={notify} onJump={jumpToPrescriptions} /> : null}
+        {page === 'prescriptions' ? <PrescriptionsPage notify={notify} initialSearch={prescriptionSearch} /> : null}
         {page === 'interactions' ? <InteractionsPage notify={notify} /> : null}
         {page === 'settings' ? <SettingsPage staff={staff} onStaffChange={setStaff} notify={notify} /> : null}
       </Layout>

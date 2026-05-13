@@ -62,6 +62,7 @@ export type RecentOrder = {
   createdAt: string;
   pickupTime?: string | null;
   itemsCount: number;
+  totalAmount: number;
 };
 
 export type AdminDashboard = {
@@ -83,6 +84,8 @@ export type Medicine = {
   certificate: boolean;
   status: StockStatus;
   conflictCount: number;
+  price: number;
+  doseIntervalDays: number;
 };
 
 export type MedicinePayload = {
@@ -93,6 +96,8 @@ export type MedicinePayload = {
   expiryDate: string;
   rx: boolean;
   certificate: boolean;
+  price: number;
+  doseIntervalDays: number;
 };
 
 export type MedicineListResponse = {
@@ -113,12 +118,16 @@ export type OrderItem = {
   quantity: number;
   category: string;
   rx: boolean;
+  unitPrice: number;
 };
 
 export type Order = RecentOrder & {
   rejectionReason: string;
   totalUnits: number;
   items: OrderItem[];
+  prescriptionId?: number;
+  prescriptionUrl?: string;
+  prescriptionStatus?: string;
 };
 
 export type OrderListResponse = {

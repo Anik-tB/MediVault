@@ -12,7 +12,7 @@ const statusOptions: { label: string; value: '' | OrderStatus }[] = [
   { label: 'Rejected', value: 'rejected' },
 ];
 
-export function OrdersPage({ notify }: { notify: (message: string, tone?: 'success' | 'error') => void }) {
+export function OrdersPage({ notify, onJump }: { notify: (message: string, tone?: 'success' | 'error') => void; onJump: (page: 'prescriptions', search?: string) => void }) {
   const [data, setData] = useState<OrderListResponse | null>(null);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -132,6 +132,7 @@ export function OrdersPage({ notify }: { notify: (message: string, tone?: 'succe
                   <span className="badge neutral">{formatDate(order.createdAt)}</span>
                   <span className="badge neutral">Pickup: {formatTime(order.pickupTime)}</span>
                   <span className="badge neutral">{order.itemsCount} med(s)</span>
+                  <span className="badge success">Total: ৳ {Number(order.totalAmount || 0).toFixed(2)}</span>
                 </div>
                 <p className="description">{order.medicines}</p>
               </article>
@@ -150,9 +151,50 @@ export function OrdersPage({ notify }: { notify: (message: string, tone?: 'succe
                   <p className="card-subtitle">{item.category} {item.rx ? '· Rx Required' : ''}</p>
                 </div>
                 <span className="badge neutral">× {item.quantity} units</span>
+                <span className="badge neutral">৳ {(Number(item.unitPrice || 0) * item.quantity).toFixed(2)}</span>
               </div>
             ))}
             <p className="card-subtitle">Created: {formatDateTime(selectedOrder.createdAt)} · Pickup: {formatDateTime(selectedOrder.pickupTime)}</p>
+            
+            {selectedOrder.prescriptionUrl ? (
+              <div className="alert-box info" style={{ marginTop: 16 }}>
+                <div className="modal-header" style={{ padding: 0, border: 'none', marginBottom: 8 }}>
+                  <h4 style={{ margin: 0 }}>Linked Prescription</h4>
+                  <span className={`badge ${selectedOrder.prescriptionStatus === 'approved' ? 'success' : selectedOrder.prescriptionStatus === 'rejected' ? 'danger' : 'warning'}`}>
+                    {selectedOrder.prescriptionStatus?.replace('_', ' ') || 'Pending Review'}
+                  </span>
+                </div>
+                <p className="description" style={{ marginBottom: 12 }}>Admin must review this prescription before final approval.</p>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <a 
+                    href={selectedOrder.prescriptionUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="soft-button"
+                    style={{ flex: 1, textDecoration: 'none', justifyContent: 'center' }}
+                  >
+                    View File
+                  </a>
+                  <button 
+                    className="primary-button"
+                    style={{ flex: 1 }}
+                    onClick={() => onJump('prescriptions', `RX-${String(selectedOrder.prescriptionId).padStart(4, '0')}`)}
+                  >
+                    Go to Review Page
+                  </button>
+                </div>
+              </div>
+            ) : selectedOrder.items.some(i => i.rx) ? (
+              <div className="alert-box danger" style={{ marginTop: 16 }}>
+                <h4>Missing Prescription</h4>
+                <p className="description">This order contains Rx medicines but no prescription was linked!</p>
+              </div>
+            ) : null}
+
+            <div className="modal-header" style={{ marginTop: 16 }}>
+              <h3>Total Amount</h3>
+              <h3 className="success-text">৳ {Number(selectedOrder.totalAmount || 0).toFixed(2)}</h3>
+            </div>
           </div>
         </Modal>
       ) : null}

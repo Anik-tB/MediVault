@@ -47,8 +47,10 @@ export function Layout({
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
           <div className="brand-mark">✚</div>
-          <h2>MediVault</h2>
-          <p>Dispensary</p>
+          <div className="sidebar-brand-text">
+            <h2>MediVault</h2>
+            <p>Dispensary</p>
+          </div>
         </div>
         <p className="sidebar-section-title">Pharmacist Portal Navigation</p>
         <nav>

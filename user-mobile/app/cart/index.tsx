@@ -37,6 +37,7 @@ export default function CartScreen() {
           category: item.category,
           available: item.available,
           quantity: item.quantity,
+          price: Number(item.price || 0),
         }));
         setCartItems(mapped);
       } catch (err: any) {
@@ -50,6 +51,9 @@ export default function CartScreen() {
 
   const hasItems = cartItems.length > 0;
   const totalUnits = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const tax = subtotal * 0.05; // 5% clinical tax/vat
+  const totalAmount = subtotal + tax;
 
   const toggleSidebar = () => {
     const toValue = isSidebarOpen ? 0 : 1;
@@ -74,6 +78,7 @@ export default function CartScreen() {
       setCartItems(data.map((item: any) => ({
         id: String(item.cart_item_id), name: item.name, rxRequired: item.rx_required,
         category: item.category, available: item.available, quantity: item.quantity,
+        price: Number(item.price || 0),
       })));
     }
   };
@@ -206,6 +211,7 @@ export default function CartScreen() {
                       <Text style={styles.itemSubtitle}>
                         {item.category} · {item.available} available
                       </Text>
+                      <Text style={styles.itemPrice}>৳ {item.price.toFixed(2)} / unit</Text>
                     </View>
                     <Pressable style={styles.deleteBtn} onPress={() => handleRemoveItem(item.id)}>
                       <Feather name="trash-2" size={18} color="#CBD5E1" />
@@ -233,12 +239,19 @@ export default function CartScreen() {
               <Text style={styles.summaryTitle}>Order Summary</Text>
               
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Medicine types</Text>
-                <Text style={styles.summaryValue}>{cartItems.length}</Text>
+                <Text style={styles.summaryLabel}>Subtotal</Text>
+                <Text style={styles.summaryValue}>৳ {subtotal.toFixed(2)}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Total units</Text>
-                <Text style={styles.summaryValue}>{totalUnits}</Text>
+                <Text style={styles.summaryLabel}>VAT (5%)</Text>
+                <Text style={styles.summaryValue}>৳ {tax.toFixed(2)}</Text>
+              </View>
+              
+              <View style={styles.summaryDivider} />
+
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Total Amount</Text>
+                <Text style={styles.totalValue}>৳ {totalAmount.toFixed(2)}</Text>
               </View>
               
               <View style={styles.summaryDivider} />
@@ -777,6 +790,28 @@ const styles = StyleSheet.create({
     color: '#D97706',
     fontSize: 12,
     fontWeight: '700',
+  },
+  itemPrice: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Palette.primary,
+    marginTop: 4,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Palette.text,
+  },
+  totalValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: Palette.primary,
   },
   alertBox: {
     flexDirection: 'row',

@@ -58,8 +58,28 @@ exports.getAdminPrescriptions = async (req, res) => {
     }
 
     if (search) {
-      params.push(`%${search}%`);
-      conditions.push(`(CAST(p.id AS TEXT) ILIKE $${params.length} OR p.patient_name ILIKE $${params.length} OR p.patient_email ILIKE $${params.length} OR u.full_name ILIKE $${params.length} OR u.email ILIKE $${params.length} OR p.file_name ILIKE $${params.length})`);
+      const searchPattern = `%${search}%`;
+      let idSearchPattern = searchPattern;
+      
+      // If search looks like RX-0029, extract 29
+      if (search.toUpperCase().startsWith('RX-')) {
+        const numericPart = search.substring(3).replace(/^0+/, '');
+        if (numericPart) idSearchPattern = `%${numericPart}%`;
+      }
+
+      params.push(searchPattern);
+      const sIdx = params.length;
+      params.push(idSearchPattern);
+      const idIdx = params.length;
+
+      conditions.push(`(
+        CAST(p.id AS TEXT) ILIKE $${idIdx} OR 
+        p.patient_name ILIKE $${sIdx} OR 
+        p.patient_email ILIKE $${sIdx} OR 
+        u.full_name ILIKE $${sIdx} OR 
+        u.email ILIKE $${sIdx} OR 
+        p.file_name ILIKE $${sIdx}
+      )`);
     }
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -97,19 +117,45 @@ exports.getAdminPrescriptions = async (req, res) => {
 };
 
 async function reviewPrescription(prescriptionId, status, notes) {
-  const result = await db.query(
-    `UPDATE prescriptions
-     SET status = $1,
-         review_notes = $2,
-         reviewed_at = NOW(),
-         updated_at = NOW()
-     WHERE id = $3
-     RETURNING id`,
-    [status, notes, prescriptionId]
-  );
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  if (result.rowCount === 0) {
-    throw new AdminValidationError('Prescription not found');
+    const result = await client.query(
+      `UPDATE prescriptions
+       SET status = $1,
+           review_notes = $2,
+           reviewed_at = NOW(),
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING id, user_id`,
+      [status, notes, prescriptionId]
+    );
+
+    if (result.rowCount === 0) {
+      throw new AdminValidationError('Prescription not found');
+    }
+
+    const { user_id } = result.rows[0];
+    const rxId = `RX-${String(prescriptionId).padStart(4, '0')}`;
+    
+    // Add Notification for the user
+    const title = status === 'approved' ? 'Prescription Approved' : 'Prescription Rejected';
+    const message = status === 'approved' 
+      ? `Your prescription ${rxId} has been approved. You can now proceed with your medicine pickup.`
+      : `Your prescription ${rxId} was rejected. Reason: ${notes}`;
+
+    await client.query(
+      `INSERT INTO notifications (user_id, type, title, message) VALUES ($1, 'prescription_update', $2, $3)`,
+      [user_id, title, message]
+    );
+
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
 }
 

@@ -12,6 +12,8 @@ const emptyForm: MedicinePayload = {
   expiryDate: '',
   rx: false,
   certificate: false,
+  price: 0,
+  doseIntervalDays: 0,
 };
 
 export function InventoryPage({ notify }: { notify: (message: string, tone?: 'success' | 'error') => void }) {
@@ -60,6 +62,8 @@ export function InventoryPage({ notify }: { notify: (message: string, tone?: 'su
       expiryDate: medicine.expiryDate?.slice(0, 10) || '',
       rx: medicine.rx,
       certificate: medicine.certificate,
+      price: medicine.price,
+      doseIntervalDays: medicine.doseIntervalDays,
     });
   };
 
@@ -127,6 +131,7 @@ export function InventoryPage({ notify }: { notify: (message: string, tone?: 'su
                 <tr>
                   <th>Medicine</th>
                   <th>Category</th>
+                  <th>Price</th>
                   <th>Stock</th>
                   <th>Expiry Date</th>
                   <th>Status</th>
@@ -141,6 +146,7 @@ export function InventoryPage({ notify }: { notify: (message: string, tone?: 'su
                       <p className="description">{medicine.description}</p>
                     </td>
                     <td>{medicine.category}</td>
+                    <td>৳ {medicine.price.toFixed(2)}</td>
                     <td>{medicine.stock}</td>
                     <td>{formatDate(medicine.expiryDate)}</td>
                     <td>{stockBadge(medicine.status)}</td>
@@ -179,6 +185,16 @@ export function InventoryPage({ notify }: { notify: (message: string, tone?: 'su
               <div className="field">
                 <label>Expiry Date *</label>
                 <input className="input" required type="date" value={form.expiryDate} onChange={(event) => setForm((current) => ({ ...current, expiryDate: event.target.value }))} />
+              </div>
+            </div>
+            <div className="form-grid two">
+              <div className="field">
+                <label>Price (৳) *</label>
+                <input className="input" required type="number" step="0.01" min={0} value={form.price} onChange={(event) => setForm((current) => ({ ...current, price: Number(event.target.value) }))} />
+              </div>
+              <div className="field">
+                <label>Dose Interval (Days)</label>
+                <input className="input" type="number" min={0} value={form.doseIntervalDays} onChange={(event) => setForm((current) => ({ ...current, doseIntervalDays: Number(event.target.value) }))} />
               </div>
             </div>
             <div className="field">

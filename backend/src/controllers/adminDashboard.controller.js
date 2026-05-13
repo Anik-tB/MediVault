@@ -38,6 +38,7 @@ exports.getAdminDashboard = async (_req, res) => {
            o.status,
            o.created_at,
            o.pickup_time,
+           COALESCE(o.total_amount, od.total_amount, 0.00) AS total_amount,
            COALESCE(u.full_name, p.patient_name, 'Unknown patient') AS patient_name,
            COALESCE(u.email, p.patient_email, '') AS patient_email,
            COALESCE(STRING_AGG(oi.medicine_name, ', ' ORDER BY oi.id), p.medicines_text, 'No medicines') AS medicines,
@@ -46,7 +47,8 @@ exports.getAdminDashboard = async (_req, res) => {
          LEFT JOIN users u ON u.firebase_uid = o.user_id
          LEFT JOIN prescriptions p ON p.id = o.prescription_id
          LEFT JOIN order_items oi ON oi.order_id = o.id
-         GROUP BY o.id, o.status, o.created_at, o.pickup_time, u.full_name, u.email, p.patient_name, p.patient_email, p.medicines_text
+         LEFT JOIN order_details od ON od.order_id = o.id
+         GROUP BY o.id, o.status, o.created_at, o.pickup_time, o.total_amount, od.total_amount, u.full_name, u.email, p.patient_name, p.patient_email, p.medicines_text
          ORDER BY o.created_at DESC
          LIMIT 6`
       ),
@@ -94,6 +96,7 @@ exports.getAdminDashboard = async (_req, res) => {
         createdAt: row.created_at,
         pickupTime: row.pickup_time,
         itemsCount: Number(row.items_count || 0),
+        totalAmount: Number(row.total_amount || 0),
       })),
       weeklyActivity: weeklyResult.rows.map((row) => ({
         day: row.day,

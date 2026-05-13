@@ -37,6 +37,7 @@ interface Medicine {
   categoryIcon: keyof typeof Feather.glyphMap;
   description: string;
   stock: number; // 0 means out of stock
+  price: number;
 }
 
 const CATEGORIES: MedicineCategory[] = [
@@ -60,6 +61,7 @@ const MEDICINES_DATA: Medicine[] = [
     categoryIcon: 'activity',
     description: 'Broad-spectrum antibiotic used to treat bacterial infections including respiratory tract...',
     stock: 150,
+    price: 32.50,
   },
   {
     id: '2',
@@ -70,6 +72,7 @@ const MEDICINES_DATA: Medicine[] = [
     categoryIcon: 'heart',
     description: 'Non-steroidal anti-inflammatory drug (NSAID) used to relieve pain, reduce inflammation, and...',
     stock: 20,
+    price: 12.00,
   },
   {
     id: '3',
@@ -80,6 +83,7 @@ const MEDICINES_DATA: Medicine[] = [
     categoryIcon: 'heart',
     description: 'Used for pain relief, fever reduction, and as a blood thinner to prevent heart attacks and strokes.',
     stock: 300,
+    price: 4.50,
   },
   {
     id: '4',
@@ -90,6 +94,7 @@ const MEDICINES_DATA: Medicine[] = [
     categoryIcon: 'droplet',
     description: 'Blood thinner medication used to treat and prevent blood clots. Requires regular monitoring.',
     stock: 30,
+    price: 48.00,
   },
   {
     id: '5',
@@ -100,6 +105,7 @@ const MEDICINES_DATA: Medicine[] = [
     categoryIcon: 'activity',
     description: 'ACE inhibitor used to treat high blood pressure, heart failure, and prevent kidney...',
     stock: 0,
+    price: 38.50,
   },
   {
     id: '6',
@@ -110,6 +116,7 @@ const MEDICINES_DATA: Medicine[] = [
     categoryIcon: 'plus-square',
     description: 'First-line medication for type 2 diabetes. Improves insulin sensitivity and reduces glucose production.',
     stock: 200,
+    price: 65.00,
   },
   {
     id: '7',
@@ -120,6 +127,7 @@ const MEDICINES_DATA: Medicine[] = [
     categoryIcon: 'wind',
     description: 'Second-generation antihistamine used to treat hay fever, allergies, and chronic urticaria.',
     stock: 85,
+    price: 18.25,
   },
   {
     id: '8',
@@ -130,6 +138,7 @@ const MEDICINES_DATA: Medicine[] = [
     categoryIcon: 'coffee',
     description: 'Proton-pump inhibitor that reduces stomach acid production. Used for GERD and peptic...',
     stock: 32,
+    price: 6.50,
   },
 ];
 
@@ -281,6 +290,7 @@ export default function SearchMedicinesScreen() {
                   <View style={styles.cardHeader}>
                     <Text style={styles.medicineName}>{med.name}</Text>
                     <View style={styles.badgesContainer}>
+                      <Text style={styles.priceText}>৳{med.price.toFixed(2)}</Text>
                       {med.rx && (
                         <View style={styles.rxBadge}>
                           <Text style={styles.rxBadgeText}>RX</Text>
@@ -592,6 +602,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: Palette.text,
+    flex: 1,
+  },
+  priceText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Palette.primary,
+    marginBottom: 4,
   },
   badgesContainer: {
     alignItems: 'flex-end',

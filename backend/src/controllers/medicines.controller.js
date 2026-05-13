@@ -4,7 +4,7 @@ exports.getMedicines = async (req, res) => {
   try {
     const { search, category } = req.query;
     
-    let query = 'SELECT * FROM medicines';
+    let query = 'SELECT m.*, md.price FROM medicines m LEFT JOIN medicine_details md ON md.medicine_id = m.id';
     const params = [];
     const conditions = [];
 
@@ -22,7 +22,7 @@ exports.getMedicines = async (req, res) => {
       query += ` WHERE ${conditions.join(' AND ')}`;
     }
 
-    query += ' ORDER BY name ASC';
+    query += ' ORDER BY m.name ASC';
 
     const result = await db.query(query, params);
     
@@ -35,7 +35,8 @@ exports.getMedicines = async (req, res) => {
       category: row.category,
       categoryIcon: row.category_icon,
       description: row.description,
-      stock: row.stock
+      stock: row.stock,
+      price: Number(row.price || 0)
     }));
 
     res.status(200).json(medicines);
