@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { approveOrder, getOrders, markOrderPickedUp, rejectOrder } from '../services/api';
-import type { Order, OrderListResponse, OrderStatus } from '../types';
+import { approveOrder, getOrders, markOrderPickedUp, rejectOrder, verifyOrderPrescription } from '../services/api';
+import type { Order, OrderListResponse, OrderStatus, PrescriptionVerificationResult, PrescriptionVerificationStatus } from '../types';
 import { formatDate, formatDateTime, formatTime, LoadingState, Modal, orderBadge } from '../components/ui';
 
 const statusOptions: { label: string; value: '' | OrderStatus }[] = [
@@ -12,11 +12,33 @@ const statusOptions: { label: string; value: '' | OrderStatus }[] = [
   { label: 'Rejected', value: 'rejected' },
 ];
 
+const verificationLabels: Record<PrescriptionVerificationStatus, string> = {
+  matched: 'Matched',
+  partial_match: 'Partial Match',
+  no_match: 'No Match',
+  needs_review: 'Needs Review',
+};
+
+const verificationTones: Record<PrescriptionVerificationStatus, string> = {
+  matched: 'success',
+  partial_match: 'warning',
+  no_match: 'danger',
+  needs_review: 'warning',
+};
+
+function confidencePercent(value: number) {
+  const normalized = Math.min(Math.max(Number(value || 0), 0), 1);
+  return `${Math.round(normalized * 100)}%`;
+}
+
 export function OrdersPage({ notify, onJump }: { notify: (message: string, tone?: 'success' | 'error') => void; onJump: (page: 'prescriptions', search?: string) => void }) {
   const [data, setData] = useState<OrderListResponse | null>(null);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [verification, setVerification] = useState<PrescriptionVerificationResult | null>(null);
+  const [verificationError, setVerificationError] = useState('');
+  const [isVerifying, setVerifying] = useState(false);
   const [approvingOrder, setApprovingOrder] = useState<Order | null>(null);
   const [rejectingOrder, setRejectingOrder] = useState<Order | null>(null);
   const [pickupTime, setPickupTime] = useState('');
@@ -78,6 +100,29 @@ export function OrdersPage({ notify, onJump }: { notify: (message: string, tone?
     }
   };
 
+  const openDetails = (order: Order) => {
+    setSelectedOrder(order);
+    setVerification(null);
+    setVerificationError('');
+  };
+
+  const runPrescriptionCheck = async () => {
+    if (!selectedOrder) return;
+    setVerifying(true);
+    setVerificationError('');
+    try {
+      const result = await verifyOrderPrescription(selectedOrder.id);
+      setVerification(result);
+      notify('Gemini prescription check complete');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to verify prescription';
+      setVerificationError(message);
+      notify(message, 'error');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   return (
     <>
       <section className="card">
@@ -116,7 +161,7 @@ export function OrdersPage({ notify, onJump }: { notify: (message: string, tone?
                     <p className="card-subtitle">{order.patientName} · {order.patientEmail}</p>
                   </div>
                   <div className="row-actions">
-                    <button className="ghost-button" type="button" onClick={() => setSelectedOrder(order)}>Details</button>
+                    <button className="ghost-button" type="button" onClick={() => openDetails(order)}>Details</button>
                     {order.status === 'pending_pickup' ? (
                       <>
                         <button className="danger-button" type="button" onClick={() => setRejectingOrder(order)}>Reject</button>
@@ -165,22 +210,31 @@ export function OrdersPage({ notify, onJump }: { notify: (message: string, tone?
                   </span>
                 </div>
                 <p className="description" style={{ marginBottom: 12 }}>Admin must review this prescription before final approval.</p>
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   <a 
                     href={selectedOrder.prescriptionUrl} 
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className="soft-button"
-                    style={{ flex: 1, textDecoration: 'none', justifyContent: 'center' }}
+                    style={{ flex: '1 1 160px', textDecoration: 'none', justifyContent: 'center' }}
                   >
                     View File
                   </a>
                   <button 
                     className="primary-button"
-                    style={{ flex: 1 }}
+                    style={{ flex: '1 1 160px' }}
                     onClick={() => onJump('prescriptions', `RX-${String(selectedOrder.prescriptionId).padStart(4, '0')}`)}
                   >
                     Go to Review Page
+                  </button>
+                  <button
+                    className="warning-button"
+                    type="button"
+                    style={{ flex: '1 1 160px' }}
+                    onClick={runPrescriptionCheck}
+                    disabled={isVerifying}
+                  >
+                    {isVerifying ? 'Checking...' : 'Gemini Check'}
                   </button>
                 </div>
               </div>
@@ -188,6 +242,45 @@ export function OrdersPage({ notify, onJump }: { notify: (message: string, tone?
               <div className="alert-box danger" style={{ marginTop: 16 }}>
                 <h4>Missing Prescription</h4>
                 <p className="description">This order contains Rx medicines but no prescription was linked!</p>
+              </div>
+            ) : null}
+
+            {verificationError ? <div className="error-box">{verificationError}</div> : null}
+            {isVerifying ? <LoadingState label="Checking prescription..." /> : null}
+            {verification ? (
+              <div className="verification-panel">
+                <div className="modal-header" style={{ marginBottom: 10 }}>
+                  <div>
+                    <h4 style={{ margin: '0 0 6px' }}>Gemini Prescription Check</h4>
+                    <p className="card-subtitle" style={{ margin: 0 }}>{verification.summary}</p>
+                  </div>
+                  <span className={`badge ${verificationTones[verification.overallStatus]}`}>
+                    {verificationLabels[verification.overallStatus]} · {confidencePercent(verification.confidence)}
+                  </span>
+                </div>
+
+                <div className="verification-list">
+                  {verification.orderedMedicineChecks.map((check) => (
+                    <div className="verification-row" key={check.orderedName}>
+                      <div>
+                        <strong>{check.orderedName}</strong>
+                        <p className="card-subtitle" style={{ margin: '4px 0 0' }}>
+                          {check.matchedPrescriptionName || 'No prescription match'} · {check.reason}
+                        </p>
+                      </div>
+                      <span className={`badge ${check.present ? 'success' : 'danger'}`}>
+                        {check.present ? 'Present' : 'Missing'} · {confidencePercent(check.confidence)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {verification.detectedMedicines.length ? (
+                  <p className="description" style={{ maxWidth: '100%', marginBottom: 0 }}>
+                    Detected: {verification.detectedMedicines.map((medicine) => medicine.name).join(', ')}
+                  </p>
+                ) : null}
+                <p className="card-subtitle" style={{ margin: '10px 0 0' }}>{verification.safetyNote}</p>
               </div>
             ) : null}
 

@@ -21,6 +21,10 @@ export function DashboardPage({ onJump }: { onJump: (page: 'inventory' | 'orders
   if (!data) return <LoadingState label="Loading dashboard..." />;
 
   const maxValue = Math.max(...data.weeklyActivity.map((item) => Math.max(item.orders, item.prescriptions)), 1);
+  const yAxisSteps = 4;
+  const stepValue = Math.ceil(maxValue / yAxisSteps) || 1;
+  const chartMax = stepValue * yAxisSteps;
+  const yAxisLabels = Array.from({ length: yAxisSteps + 1 }, (_, i) => i * stepValue);
   const statCards = [
     { icon: '💊', value: data.summary.totalMedicines, label: 'Total Medicines' },
     { icon: '📈', value: data.summary.weeklyActivity, label: 'Weekly Activity' },
@@ -44,18 +48,52 @@ export function DashboardPage({ onJump }: { onJump: (page: 'inventory' | 'orders
 
       <section className="dashboard-grid">
         <article className="card">
-          <h2>Weekly Activity</h2>
-          <p className="card-subtitle">Orders and prescriptions this week</p>
-          <div className="chart" aria-label="Weekly activity chart">
-            {data.weeklyActivity.map((item) => (
-              <div className="chart-col" key={item.day}>
-                <div className="bar-wrap">
-                  <span className="bar" style={{ height: `${Math.max((item.orders / maxValue) * 100, 5)}%` }} title={`${item.orders} orders`} />
-                  <span className="bar secondary" style={{ height: `${Math.max((item.prescriptions / maxValue) * 100, 5)}%` }} title={`${item.prescriptions} prescriptions`} />
-                </div>
-                <span>{item.day}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+            <div>
+              <h2>Weekly Activity</h2>
+              <p className="card-subtitle">Orders and prescriptions this week</p>
+            </div>
+            <div style={{ display: 'flex', gap: 24, textAlign: 'right', paddingRight: 8 }}>
+              <div>
+                <div style={{ fontSize: 24, fontWeight: 850, color: 'var(--primary)', lineHeight: 1 }}>{data.summary.weeklyOrders}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 750, marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Orders</div>
               </div>
-            ))}
+              <div>
+                <div style={{ fontSize: 24, fontWeight: 850, color: '#60a5fa', lineHeight: 1 }}>{data.summary.weeklyPrescriptions}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 750, marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Rx</div>
+              </div>
+            </div>
+          </div>
+          <div className="chart-container">
+            <div className="y-axis">
+              {yAxisLabels.map((val) => (
+                <span key={val}>{val}</span>
+              ))}
+            </div>
+            <div className="chart-inner">
+              <div className="grid-lines">
+                {yAxisLabels.map((val) => (
+                  <div key={`grid-${val}`} className="grid-line" />
+                ))}
+              </div>
+              <div className="chart" aria-label="Weekly activity chart">
+                {data.weeklyActivity.map((item) => (
+                  <div className="chart-col" key={item.day}>
+                    <div className="bar-wrap">
+                      <div className="bar-container">
+                        {item.orders > 0 && <span className="bar-value">{item.orders}</span>}
+                        <span className="bar" style={{ height: item.orders === 0 ? '0%' : `${Math.max((item.orders / chartMax) * 100, 4)}%` }} title={`${item.orders} orders`} />
+                      </div>
+                      <div className="bar-container">
+                        {item.prescriptions > 0 && <span className="bar-value">{item.prescriptions}</span>}
+                        <span className="bar secondary" style={{ height: item.prescriptions === 0 ? '0%' : `${Math.max((item.prescriptions / chartMax) * 100, 4)}%` }} title={`${item.prescriptions} prescriptions`} />
+                      </div>
+                    </div>
+                    <span>{item.day}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="legend">
             <span><i className="dot" />Orders</span>

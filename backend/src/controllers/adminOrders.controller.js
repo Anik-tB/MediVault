@@ -6,6 +6,7 @@ const {
   normalizeText,
 } = require('../utils/admin.utils');
 const env = require('../config/env');
+const { verifyPrescriptionAgainstOrder } = require('../services/prescriptionVerification.service');
 
 function resolveStorageUrl(raw) {
   if (!raw) return '';
@@ -120,6 +121,77 @@ exports.getAdminOrders = async (req, res) => {
     });
   } catch (error) {
     return handleAdminError(res, error, 'Internal server error while fetching orders');
+  }
+};
+
+exports.verifyOrderPrescription = async (req, res) => {
+  try {
+    const orderId = normalizeInteger(req.params.orderId, { fieldName: 'Order ID', min: 1 });
+
+    const result = await db.query(
+      `SELECT
+         o.id,
+         o.prescription_id,
+         p.file_name,
+         p.file_type,
+         p.storage_url AS prescription_url,
+         COALESCE(
+           JSON_AGG(
+             JSON_BUILD_OBJECT(
+               'medicineId', oi.medicine_id,
+               'name', oi.medicine_name,
+               'quantity', oi.quantity,
+               'rx', m.rx
+             ) ORDER BY oi.id
+           ) FILTER (WHERE oi.id IS NOT NULL),
+           '[]'
+         ) AS items
+       FROM orders o
+       LEFT JOIN prescriptions p ON p.id = o.prescription_id
+       LEFT JOIN order_items oi ON oi.order_id = o.id
+       LEFT JOIN medicines m ON m.id = oi.medicine_id
+       WHERE o.id = $1
+       GROUP BY o.id, p.id, p.file_name, p.file_type, p.storage_url`,
+      [orderId]
+    );
+
+    if (result.rowCount === 0) {
+      throw new AdminValidationError('Order not found');
+    }
+
+    const order = result.rows[0];
+    if (!order.prescription_id || !order.prescription_url) {
+      throw new AdminValidationError('This order has no linked prescription to verify.');
+    }
+
+    const orderedMedicines = (Array.isArray(order.items) ? order.items : [])
+      .filter((item) => item?.name)
+      .map((item) => ({
+        name: item.name,
+        quantity: Number(item.quantity || 1),
+        rx: Boolean(item.rx),
+      }));
+
+    const verification = await verifyPrescriptionAgainstOrder({
+      orderedMedicines,
+      prescription: {
+        id: order.prescription_id,
+        fileName: order.file_name,
+        fileType: order.file_type,
+        url: resolveStorageUrl(order.prescription_url),
+      },
+    });
+
+    return res.status(200).json({
+      orderId,
+      displayId: `ORD-${String(orderId).padStart(4, '0')}`,
+      prescriptionId: order.prescription_id,
+      prescriptionTrackingId: `RX-${String(order.prescription_id).padStart(4, '0')}`,
+      fileName: order.file_name,
+      ...verification,
+    });
+  } catch (error) {
+    return handleAdminError(res, error, 'Internal server error while verifying prescription');
   }
 };
 

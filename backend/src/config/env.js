@@ -13,6 +13,10 @@ module.exports = {
   port,
   baseUrl: readEnv('BASE_URL', `http://localhost:${port}`),
   databaseUrl: readEnv('DATABASE_URL'),
+  gemini: {
+    apiKey: readEnv('GEMINI_API_KEY') || readEnv('GOOGLE_API_KEY'),
+    model: readEnv('GEMINI_MODEL', 'gemini-3.5-flash'),
+  },
   db: {
     host: readEnv('DB_HOST', 'localhost'),
     port: Number(readEnv('DB_PORT', 5432)),

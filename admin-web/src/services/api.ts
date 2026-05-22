@@ -5,6 +5,7 @@ import type {
   MedicineListResponse,
   MedicinePayload,
   OrderListResponse,
+  PrescriptionVerificationResult,
   PrescriptionListResponse,
   StaffProfile,
 } from '../types';
@@ -164,6 +165,12 @@ export async function rejectOrder(id: number, reason: string) {
 
 export async function markOrderPickedUp(id: number) {
   return apiFetch<{ message: string }>(`/admin/orders/${id}/pickup`, { method: 'PATCH' });
+}
+
+export async function verifyOrderPrescription(id: number) {
+  return apiFetch<PrescriptionVerificationResult>(`/admin/orders/${id}/verify-prescription`, {
+    method: 'POST',
+  });
 }
 
 export async function getPrescriptions(params: { search?: string; status?: string } = {}) {

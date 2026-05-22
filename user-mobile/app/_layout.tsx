@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 
 import { Palette } from '@/constants/theme';
 import { AuthProvider } from '@/hooks/use-auth';
+import { NotificationsProvider } from '@/hooks/use-notifications';
 
 export default function RootLayout() {
   const theme = {
@@ -21,33 +22,35 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <ThemeProvider value={theme}>
-        <Stack
-          screenOptions={{
-            animation: 'fade',
-            contentStyle: { backgroundColor: Palette.background },
-            headerShown: false,
-          }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="login/index" />
-          <Stack.Screen name="dashboard/index" />
-          <Stack.Screen name="search_medicine/index" />
-          <Stack.Screen name="cart/index" />
-          <Stack.Screen name="notifications/index" />
-          <Stack.Screen name="orders/index" />
-          <Stack.Screen name="prescriptions/index" />
-          <Stack.Screen name="prescriptions/preview" />
-          <Stack.Screen name="prescriptions/success" />
-          <Stack.Screen name="profile/index" />
-          <Stack.Screen name="settings/index" />
-          <Stack.Screen name="settings/appearance" />
-          <Stack.Screen name="settings/notifications" />
-          <Stack.Screen name="settings/security" />
-          <Stack.Screen name="sign-up/index" />
-          <Stack.Screen name="sign-up/security" />
-        </Stack>
-        <StatusBar style="dark" />
-      </ThemeProvider>
+      <NotificationsProvider>
+        <ThemeProvider value={theme}>
+          <Stack
+            screenOptions={{
+              animation: 'fade',
+              contentStyle: { backgroundColor: Palette.background },
+              headerShown: false,
+            }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="login/index" />
+            <Stack.Screen name="dashboard/index" />
+            <Stack.Screen name="search_medicine/index" />
+            <Stack.Screen name="cart/index" />
+            <Stack.Screen name="notifications/index" />
+            <Stack.Screen name="orders/index" />
+            <Stack.Screen name="prescriptions/index" />
+            <Stack.Screen name="prescriptions/preview" />
+            <Stack.Screen name="prescriptions/success" />
+            <Stack.Screen name="profile/index" />
+            <Stack.Screen name="settings/index" />
+            <Stack.Screen name="settings/appearance" />
+            <Stack.Screen name="settings/notifications" />
+            <Stack.Screen name="settings/security" />
+            <Stack.Screen name="sign-up/index" />
+            <Stack.Screen name="sign-up/security" />
+          </Stack>
+          <StatusBar style="dark" />
+        </ThemeProvider>
+      </NotificationsProvider>
     </AuthProvider>
   );
 }

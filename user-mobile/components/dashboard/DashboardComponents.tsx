@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { Palette } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
+import { useNotifications } from '@/hooks/use-notifications';
 import type { DashboardSummary, DashboardRecentOrder } from '@/services/dashboard';
 
 const { width, height } = Dimensions.get('window');
@@ -20,6 +21,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ onOpenSidebar, title = 'Dashboard' }: DashboardHeaderProps) {
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
   const router = useRouter();
   const initial = user?.displayName?.charAt(0).toUpperCase() || 'U';
 
@@ -38,7 +40,7 @@ export function DashboardHeader({ onOpenSidebar, title = 'Dashboard' }: Dashboar
           onPress={() => router.push('/notifications' as any)}
         >
           <Feather name="bell" size={24} color={Palette.textSoft} />
-          <View style={DashboardHeaderStyles.badge} />
+          {unreadCount > 0 && <View style={DashboardHeaderStyles.badge} />}
         </Pressable>
         <Pressable
           style={({ pressed }) => [DashboardHeaderStyles.avatar, { opacity: pressed ? 0.7 : 1 }]}

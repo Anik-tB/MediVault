@@ -130,6 +130,40 @@ export type Order = RecentOrder & {
   prescriptionStatus?: string;
 };
 
+export type PrescriptionVerificationStatus = 'matched' | 'partial_match' | 'no_match' | 'needs_review';
+
+export type PrescriptionMedicineCheck = {
+  orderedName: string;
+  present: boolean;
+  matchedPrescriptionName: string;
+  confidence: number;
+  reason: string;
+};
+
+export type DetectedPrescriptionMedicine = {
+  name: string;
+  strength: string;
+  dosage: string;
+  frequency: string;
+  notes: string;
+};
+
+export type PrescriptionVerificationResult = {
+  orderId: number;
+  displayId: string;
+  prescriptionId: number;
+  prescriptionTrackingId: string;
+  fileName: string;
+  model: string;
+  checkedAt: string;
+  overallStatus: PrescriptionVerificationStatus;
+  confidence: number;
+  detectedMedicines: DetectedPrescriptionMedicine[];
+  orderedMedicineChecks: PrescriptionMedicineCheck[];
+  summary: string;
+  safetyNote: string;
+};
+
 export type OrderListResponse = {
   orders: Order[];
   stats: {

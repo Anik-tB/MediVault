@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const env = require('../config/env');
+const supabase = require('../config/supabase');
 const {
   ValidationError,
   ensureUserRecord,
@@ -85,11 +86,36 @@ exports.createPrescription = async (req, res) => {
       throw new ValidationError('fileName and fileType are required');
     }
 
-    const storageUrl = `${env.baseUrl}/uploads/${req.file.filename}`;
-
     if (!Number.isFinite(fileSizeBytes) || fileSizeBytes < 1 || fileSizeBytes > 5242880) {
       throw new ValidationError('fileSizeBytes must be between 1 and 5242880');
     }
+
+    if (!supabase) {
+      throw new Error('Supabase storage is not configured properly.');
+    }
+
+    // Upload to Supabase Storage
+    const fileExtension = fileName.split('.').pop();
+    const uniqueFileName = `${req.user.firebase_uid}-${Date.now()}.${fileExtension}`;
+    
+    const { data, error: uploadError } = await supabase.storage
+      .from('prescriptions')
+      .upload(uniqueFileName, req.file.buffer, {
+        contentType: fileType,
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError);
+      throw new Error('Failed to upload file to storage');
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('prescriptions')
+      .getPublicUrl(uniqueFileName);
+
+    const storageUrl = publicUrl;
 
     const result = await db.query(
       `INSERT INTO prescriptions (

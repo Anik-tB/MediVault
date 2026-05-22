@@ -11,7 +11,6 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, '../../backend/uploads')));
 
 app.get('/', (_request, response) => {
   response.json({

@@ -94,7 +94,7 @@ export default function SignUpInfoScreen() {
               icon={<Feather name="phone" size={24} color={Palette.textSoft} />}
               keyboardType="phone-pad"
               onChangeText={setPhone}
-              placeholder="+1 555 0100"
+              placeholder="+880 1..."
               value={phone}
             />
           </View>
