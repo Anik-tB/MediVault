@@ -1,16 +1,19 @@
 # MediVault Backend
 
-This folder contains the Express API and PostgreSQL integration used by the MediVault mobile app.
+This folder contains the complete Express API and PostgreSQL integration used by the MediVault mobile app and the admin web portal.
 
 ## What This Backend Does
 
-- verifies Firebase ID tokens with Firebase Admin
+- verifies Firebase ID tokens with Firebase Admin for mobile users
 - syncs Firebase users into PostgreSQL
 - exposes medicine catalog data
 - stores cart items per user
 - creates pickup orders
 - stores prescription submission records
-- powers dashboard, profile, and settings screens
+- powers dashboard, profile, and settings screens for mobile users
+- **powers the staff admin panel with dedicated `/admin/*` routes**
+- **manages medicine conflict/interaction rules**
+- **handles staff authentication and session management**
 
 The API base path is:
 
@@ -27,7 +30,7 @@ The API base path is:
 - `serviceAccountKey.json`
   - local Firebase Admin credential file
 - `database/migrations/`
-  - SQL schema and seed files
+  - SQL schema and seed files (including admin and interactions tables)
 - `src/app.js`
   - Express app setup
 - `src/server.js`
@@ -35,11 +38,11 @@ The API base path is:
 - `src/config/`
   - env loading, PostgreSQL pool, and Firebase Admin init
 - `src/controllers/`
-  - feature logic per route group
+  - feature logic per route group (contains both user and admin controllers)
 - `src/middleware/`
-  - request middleware like auth verification
+  - request middleware like auth verification and admin session checks
 - `src/routes/`
-  - API endpoint registration
+  - API endpoint registration (`admin.routes.js` handles all staff routes)
 - `src/utils/`
   - shared account helpers
 - `src/models/`
@@ -49,44 +52,24 @@ The API base path is:
 
 ## Route Map
 
-- `POST /auth/sync`
-  - sync the signed-in Firebase user into PostgreSQL
-- `GET /medicines`
-  - list medicines
-- `POST /cart`
-  - add item to cart
-- `GET /cart`
-  - get cart contents
-- `PATCH /cart/:cartItemId`
-  - update cart quantity
-- `DELETE /cart/:cartItemId`
-  - remove one cart item
-- `DELETE /cart`
-  - clear cart
-- `GET /dashboard`
-  - fetch dashboard summary and recent orders
-- `GET /orders`
-  - list order history
-- `GET /orders/:orderId`
-  - fetch order items
-- `DELETE /orders/:orderId`
-  - cancel pending pickup order
-- `POST /orders`
-  - reserve current cart for pickup
-- `GET /prescriptions`
-  - list prescription submissions
-- `POST /prescriptions`
-  - create a prescription record
-- `GET /profile`
-  - fetch user profile
-- `PATCH /profile`
-  - update profile
-- `GET /settings`
-  - fetch current settings
-- `PATCH /settings/notifications`
-  - update notification preferences
-- `PATCH /settings/appearance`
-  - update appearance preferences
+**User Mobile Routes:**
+- `POST /auth/sync`: sync the signed-in Firebase user into PostgreSQL
+- `GET /medicines`: list medicines
+- `POST /cart`, `GET /cart`, `PATCH /cart/:cartItemId`, `DELETE /cart/:cartItemId`, `DELETE /cart`: cart management
+- `GET /dashboard`: fetch dashboard summary and recent orders
+- `GET /orders`, `GET /orders/:orderId`, `DELETE /orders/:orderId`, `POST /orders`: order management
+- `GET /prescriptions`, `POST /prescriptions`: prescription management
+- `GET /profile`, `PATCH /profile`: user profile
+- `GET /settings`, `PATCH /settings/notifications`, `PATCH /settings/appearance`: user settings
+
+**Admin Routes (`/admin/*`):**
+- `/auth/*`: Admin login, registration, session management
+- `/dashboard`: Admin statistics
+- `/medicines/*`: CRUD for medicine catalog
+- `/orders/*`: Verify prescriptions and approve/reject/pickup orders
+- `/prescriptions/*`: Approve or reject submitted prescriptions
+- `/interactions/*`: CRUD for medicine conflict/interaction rules
+- `/settings/*`: Staff profile, notifications, and security management
 
 ## Database Files
 
@@ -95,27 +78,12 @@ Run these migrations in order:
 1. `database/migrations/users.sql`
 2. `database/migrations/user_profile_settings.sql`
 3. `database/migrations/medicines.sql`
-4. `database/migrations/cart.sql`
+4. `database/migrations/cart_items.sql`
 5. `database/migrations/cart_items_view.sql`
 6. `database/migrations/orders.sql`
 7. `database/migrations/prescriptions.sql`
-
-What they hold:
-
-- `users.sql`
-  - base `users` table
-- `user_profile_settings.sql`
-  - extra profile fields plus `user_settings`
-- `medicines.sql`
-  - `medicines` table and seed records
-- `cart.sql`
-  - `cart_items`
-- `cart_items_view.sql`
-  - a helper SQL view for inspecting cart rows with medicine names
-- `orders.sql`
-  - `orders` and `order_items`
-- `prescriptions.sql`
-  - `prescriptions` and `orders.prescription_id`
+8. `database/migrations/notifications.sql`
+9. `database/migrations/admin_web.sql`
 
 ## Setup
 
@@ -153,6 +121,6 @@ npm run dev
 
 ## Notes
 
-- Rx order creation checks for a usable prescription record before creating the order
-- Prescription submission is currently metadata-based and does not yet store uploaded file binaries
-- See the root `README.md` for the end-to-end mobile + backend workflow
+- Rx order creation checks for a usable prescription record before creating the order.
+- Medicine conflict rules are fully enforced via the interactions table managed in the admin panel.
+- See the root `README.md` for the end-to-end mobile + admin + backend workflow.

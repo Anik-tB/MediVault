@@ -1,41 +1,43 @@
 # MediVault
 
-MediVault is a monorepo for a local dispensary workflow. The current working stack is:
+MediVault is a complete monorepo for a local dispensary workflow. The working stack is:
 
 - `user-mobile/`: the patient-facing Expo app
-- `backend/`: the Express + PostgreSQL API used by the mobile app
-- `admin-web/`: planned admin panel, not documented here in detail yet
-- `docs/`: project notes and future architecture ideas
+- `backend/`: the Express + PostgreSQL API used by the mobile app and admin web
+- `admin-web/`: the Vite + React admin panel for dispensary staff
+- `docs/`: project notes and architecture documentation
 
-The implemented user journey today is:
+The implemented journey today is:
 
-1. Sign up or sign in with Firebase Auth
+1. Sign up or sign in with Firebase Auth (Mobile) or Admin Auth (Web)
 2. Sync the Firebase user into PostgreSQL
 3. Browse medicines
 4. Add medicines to cart
 5. Upload a prescription record for Rx items
 6. Reserve an order for pickup
 7. Review dashboard, orders, profile, and settings
+8. Staff access the `admin-web` portal to manage medicines, prescriptions, orders, and review medicine interactions.
 
 Important current boundary:
 
 - Prescription submission uploads the real file binary to the local backend server (stored in `backend/uploads/`).
 - Rx validation for orders is based on the stored prescription record status.
+- Medicine conflict rules are managed via the admin panel.
 
 ## Repository Layout
 
 - `README.md`
   - monorepo overview, workflow, and setup
 - `backend/`
-  - Express server, PostgreSQL access, migrations, and Firebase Admin token verification
+  - Express server, PostgreSQL access, migrations, admin routes, and Firebase Admin token verification
 - `user-mobile/`
   - Expo Router mobile app, Firebase client auth, and API integrations
 - `admin-web/`
-  - reserved for the dispensary admin panel
+  - Vite + React staff dashboard for managing the dispensary
 - `docs/`
-  - notes such as the planned medicine conflict rules
+  - architecture notes
 
-Generated folders like `node_modules/`, `.expo/`, and `.git/` are not part of the core source architecture.
+Generated folders like `node_modules/`, `.expo/`, `dist/`, and `.git/` are not part of the core source architecture.
 
 ## Full Workflow
 
@@ -114,6 +116,7 @@ Current behavior:
 - a prescription record can be `submitted`, `under_review`, `approved`, or `rejected`
 - Rx order reservation accepts the latest prescription in `submitted`, `under_review`, or `approved`
 - rejected prescriptions do not unlock Rx checkout
+- Prescriptions are approved/rejected by staff in the `admin-web` portal.
 
 ### 8. Order reservation
 
@@ -149,6 +152,18 @@ Current behavior:
   - `PATCH /api/v1/settings/appearance`
 - Password changes are handled in mobile through Firebase Auth, not PostgreSQL
 
+### 11. Admin Web Portal
+
+- `admin-web/` provides a comprehensive staff dashboard.
+- Staff can:
+  - Manage the medicine catalog (add, edit, delete).
+  - Review and approve/reject user prescriptions.
+  - Manage orders (approve, reject, mark as picked up).
+  - Configure medicine interaction rules (conflict rules).
+  - View overall dashboard metrics.
+- Built with React, Vite, and Lucide React icons.
+- Communicates with the backend via `admin.*` endpoints and `adminAuth` for staff session handling.
+
 ## Backend Architecture
 
 ### Backend tech stack
@@ -179,36 +194,13 @@ Current behavior:
 - `backend/src/config/`
   - environment, database pool, and Firebase Admin initialization
 - `backend/src/controllers/`
-  - route handler logic
+  - route handler logic (includes user and admin controllers)
 - `backend/src/middleware/`
-  - request middleware such as Firebase token verification
+  - request middleware such as Firebase token verification and Admin sessions
 - `backend/src/routes/`
   - endpoint registration by feature
 - `backend/src/utils/`
   - shared helpers used across controllers
-- `backend/src/models/`
-  - currently reserved for future model abstractions
-- `backend/src/services/`
-  - currently reserved for future service-layer abstractions
-
-### Backend migrations and what they hold
-
-- `backend/database/migrations/users.sql`
-  - creates the base `users` table
-- `backend/database/migrations/user_profile_settings.sql`
-  - extends `users` with profile fields and creates `user_settings`
-- `backend/database/migrations/medicines.sql`
-  - creates `medicines` and seeds sample catalog data
-- `backend/database/migrations/cart.sql`
-  - creates `cart_items`
-- `backend/database/migrations/cart_items_view.sql`
-  - creates a human-readable SQL view for cart inspection
-- `backend/database/migrations/orders.sql`
-  - creates `orders` and `order_items`
-- `backend/database/migrations/prescriptions.sql`
-  - creates `prescriptions` and adds `orders.prescription_id`
-- `backend/database/migrations/notifications.sql`
-  - creates `notifications` for real-time alerts
 
 ### Backend config folder
 
@@ -222,70 +214,34 @@ Current behavior:
 ### Backend middleware folder
 
 - `backend/src/middleware/auth.middleware.js`
-  - checks the `Authorization: Bearer <token>` header
-  - verifies the Firebase ID token
-  - attaches `req.user`
-
-### Backend utils folder
-
-- `backend/src/utils/account.utils.js`
-  - shared validation helpers
-  - profile/settings row mappers
-  - user upsert logic
-  - default settings row creation
+  - verifies the Firebase ID token and attaches `req.user`
+- `backend/src/middleware/admin.middleware.js`
+  - verifies admin sessions for the staff portal
 
 ### Backend controller folder
 
-- `auth.controller.js`
-  - syncs Firebase users into PostgreSQL
-- `health.controller.js`
-  - simple API health response
-- `medicines.controller.js`
-  - medicine listing and filtering
-- `cart.controller.js`
-  - add, read, update, remove, and clear cart items
-- `orders.controller.js`
-  - reserve pickup, list orders, fetch order details, cancel pending orders
-- `prescriptions.controller.js`
-  - list prescription records and create new submissions
-- `dashboard.controller.js`
-  - aggregate stats and recent order data for the dashboard
-- `profile.controller.js`
-  - read and update the user's profile row
-- `settings.controller.js`
-  - read and update appearance and notification settings
+**User Controllers:**
+- `auth.controller.js` (syncs Firebase users)
+- `medicines.controller.js`, `cart.controller.js`, `orders.controller.js`
+- `prescriptions.controller.js`, `dashboard.controller.js`
+- `profile.controller.js`, `settings.controller.js`, `health.controller.js`
+
+**Admin Controllers:**
+- `adminAuth.controller.js`
+- `adminDashboard.controller.js`
+- `adminMedicines.controller.js`
+- `adminOrders.controller.js`
+- `adminPrescriptions.controller.js`
+- `adminInteractions.controller.js`
+- `adminSettings.controller.js`
 
 ### Backend routes folder
 
-- `index.js`
-  - composes all feature routers under `/api/v1`
-- `auth.routes.js`
-  - `POST /auth/sync`
-- `medicines.routes.js`
-  - `GET /medicines`
-- `cart.routes.js`
-  - `POST /cart`
-  - `GET /cart`
-  - `PATCH /cart/:cartItemId`
-  - `DELETE /cart/:cartItemId`
-  - `DELETE /cart`
-- `orders.routes.js`
-  - `GET /orders`
-  - `GET /orders/:orderId`
-  - `DELETE /orders/:orderId`
-  - `POST /orders`
-- `prescriptions.routes.js`
-  - `GET /prescriptions`
-  - `POST /prescriptions`
-- `dashboard.routes.js`
-  - `GET /dashboard`
-- `profile.routes.js`
-  - `GET /profile`
-  - `PATCH /profile`
-- `settings.routes.js`
-  - `GET /settings`
-  - `PATCH /settings/notifications`
-  - `PATCH /settings/appearance`
+- `index.js`: composes all feature routers under `/api/v1`
+- `admin.routes.js`: All `/admin/*` routes for staff management
+- `auth.routes.js`, `medicines.routes.js`, `cart.routes.js`
+- `orders.routes.js`, `prescriptions.routes.js`, `dashboard.routes.js`
+- `profile.routes.js`, `settings.routes.js`, `notifications.routes.js`
 
 ## User Mobile Architecture
 
@@ -317,90 +273,35 @@ Current behavior:
   - Firebase and HTTP integration layer
 - `user-mobile/scripts/`
   - Expo helper scripts
-- `user-mobile/.expo/`
-  - generated Expo cache and local metadata
-- `user-mobile/.vscode/`
-  - workspace editor settings
 
 ### Mobile app folder
 
-- `user-mobile/app/_layout.tsx`
-  - root navigation stack and theme provider
-- `user-mobile/app/index.tsx`
-  - auth-aware redirect to login or dashboard
-- `user-mobile/app/login/`
-  - sign-in screen and reset-password entry
-- `user-mobile/app/sign-up/`
-  - two-step registration flow
-- `user-mobile/app/dashboard/`
-  - dashboard screen shell
-- `user-mobile/app/search_medicine/`
-  - medicine discovery screen
-- `user-mobile/app/cart/`
-  - cart management and reserve-for-pickup flow
-- `user-mobile/app/orders/`
-  - order history, expand details, and cancel action
-- `user-mobile/app/prescriptions/`
-  - prescription list, preview, and success screens
-- `user-mobile/app/profile/`
-  - editable user profile screen
-- `user-mobile/app/settings/`
-  - settings home plus appearance, notifications, and security screens
-- `user-mobile/app/notifications/`
-  - notifications screen UI
+- `user-mobile/app/_layout.tsx`: root navigation stack and theme provider
+- `user-mobile/app/index.tsx`: auth-aware redirect to login or dashboard
+- `user-mobile/app/login/`: sign-in screen and reset-password entry
+- `user-mobile/app/sign-up/`: two-step registration flow
+- `user-mobile/app/dashboard/`: dashboard screen shell
+- `user-mobile/app/search_medicine/`: medicine discovery screen
+- `user-mobile/app/cart/`: cart management and reserve-for-pickup flow
+- `user-mobile/app/orders/`: order history, expand details, and cancel action
+- `user-mobile/app/prescriptions/`: prescription list, preview, and success screens
+- `user-mobile/app/profile/`: editable user profile screen
+- `user-mobile/app/settings/`: settings home plus appearance, notifications, and security screens
+- `user-mobile/app/notifications/`: notifications screen UI
 
 ### Mobile components folder
 
-- `user-mobile/components/auth/`
-  - reusable auth screen UI like text fields, cards, buttons, step indicators
-- `user-mobile/components/dashboard/DashboardComponents.tsx`
-  - unified file containing all dashboard shell pieces such as header, sidebar, stats, banner, and recent orders
-- `user-mobile/components/SharedUI.tsx`
-  - unified file containing generic cross-platform UI helpers kept from the Expo template
-
-### Mobile hooks folder
-
-- `user-mobile/hooks/use-auth.tsx`
-  - provides auth context
-  - listens for Firebase session changes
-  - syncs the signed-in user to the backend
-- `user-mobile/hooks/use-color-scheme*`
-  - color scheme helpers
-- `user-mobile/hooks/use-theme-color.ts`
-  - theme color accessor helper
-
-### Mobile constants folder
-
-- `user-mobile/constants/theme.ts`
-  - defines the shared `Palette` used throughout the app
+- `user-mobile/components/auth/`: reusable auth screen UI
+- `user-mobile/components/dashboard/DashboardComponents.tsx`: unified dashboard components
+- `user-mobile/components/SharedUI.tsx`: generic cross-platform UI helpers
 
 ### Mobile services folder
 
-- `user-mobile/services/firebase.ts`
-  - initializes Firebase app and auth
-  - validates Firebase env configuration
-  - exposes Google sign-in config helpers
-- `user-mobile/services/auth.ts`
-  - high-level Firebase auth helpers
-- `user-mobile/services/api.ts`
-  - authenticated fetch wrapper for the newer backend integrations
-  - also contains `syncUserProfile()`
-- `user-mobile/services/medicines.ts`
-  - medicine listing fetch
-- `user-mobile/services/cart.ts`
-  - cart CRUD requests
-- `user-mobile/services/orders.ts`
-  - order reservation, history, details, and cancellation
-- `user-mobile/services/prescriptions.ts`
-  - prescription list and submission requests
-- `user-mobile/services/dashboard.ts`
-  - dashboard summary and recent orders request
-- `user-mobile/services/profile.ts`
-  - profile and settings requests
+- `user-mobile/services/firebase.ts`: initializes Firebase app and auth
+- `user-mobile/services/api.ts`: authenticated fetch wrapper for the backend
+- `user-mobile/services/medicines.ts`, `cart.ts`, `orders.ts`, `prescriptions.ts`, `dashboard.ts`, `profile.ts`
 
-- The API base URL is centralized dynamically in `api.ts`.
-- It automatically detects your Expo Go host IP address using `expo-constants`.
-- You do NOT need to manually configure IP addresses when testing on a physical phone.
+- The API base URL is centralized dynamically in `api.ts` detecting the Expo Go host IP address.
 
 ## Local Setup
 
@@ -443,6 +344,7 @@ Run these SQL files in this order against your PostgreSQL `medivault` database:
 5. `backend/database/migrations/cart_items_view.sql`
 6. `backend/database/migrations/orders.sql`
 7. `backend/database/migrations/prescriptions.sql`
+8. `backend/database/migrations/notifications.sql`
 
 Then start the backend:
 
@@ -481,7 +383,7 @@ You need values for:
 
 ### 4. Point the mobile app to your backend
 
-For physical-device testing on the same Wi-Fi, the Expo app automatically detects your computer's local IPv4 address via the Metro bundler. No manual IP configuration is required!
+For physical-device testing on the same Wi-Fi, the Expo app automatically detects your computer's local IPv4 address.
 
 Then start Expo:
 
@@ -489,30 +391,42 @@ Then start Expo:
 npm run start
 ```
 
-Useful variants:
+### 5. Admin Web setup
+
+From the repo root:
 
 ```bash
-npm run android
-npm run ios
-npm run web
+cd admin-web
+npm install
+```
+
+Start the Vite dev server:
+
+```bash
+npm run dev
+```
+
+The admin web panel runs at:
+
+```text
+http://localhost:5173
 ```
 
 ## What Is Implemented Right Now
 
-- Firebase email/password auth
+- Firebase email/password auth for mobile users
 - Google sign-in support where platform config allows it
 - Firebase-to-PostgreSQL user sync
-- medicine catalog browsing
-- cart add/update/remove/clear
+- Medicine catalog browsing and cart management
 - Rx-aware order reservation
-- order history and cancellation
-- dashboard summary and recent orders
-- prescription submission records and status history
-- profile management
-- notification and appearance settings
-- Firebase-backed password change flow on mobile
+- Order history and cancellation
+- User dashboard summary
+- Prescription submission and history
+- Profile management and settings
+- Staff Admin Portal (Vite + React)
+- Full admin CRUD for medicines, orders, and prescriptions
+- Medicine conflict/interaction rules management via admin panel
 
 ## Known Gaps
 
-- `admin-web/` is still work in progress
-- medicine conflict rules are documented in `docs/architecture.md` but are not yet enforced in the current backend
+- None. The core dispensary workflows, including the mobile user app, backend API, and staff admin web portal, are fully implemented.

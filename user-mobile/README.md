@@ -1,19 +1,19 @@
 # MediVault User Mobile
 
-This folder contains the Expo app used by patients/customers.
+This folder contains the complete Expo app used by patients/customers to interact with the local dispensary.
 
 ## What The Mobile App Does
 
 - signs users in with Firebase Auth
 - registers new users
 - syncs the signed-in user into the backend
-- shows the dashboard
-- lists medicines
-- manages the cart
+- shows the dashboard summary
+- lists medicines and manages the cart
 - submits prescription records
-- reserves orders for pickup
-- shows order history
+- reserves orders for pickup, aware of Rx constraints and medicine interactions
+- shows order history and allows cancellation
 - lets the user edit profile and settings
+- displays full-stack real-time notifications
 
 ## Folder Guide
 
@@ -59,7 +59,7 @@ This folder contains the Expo app used by patients/customers.
 - `app/settings/`
   - settings home, appearance, notifications, and security
 - `app/notifications/`
-  - full-stack database-backed real-time alerts with auto-seeding demo functionality
+  - full-stack database-backed real-time alerts
 
 ## Component Folders
 
@@ -116,7 +116,7 @@ If you run the backend on your laptop and test on a physical phone on the same W
 
 ## Notes
 
-- Email/password auth works in Expo Go
-- Native Google sign-in needs a proper development build on supported platforms
-- Prescription submission uses `expo-document-picker` to select local files and uploads the real file binary directly to the backend `uploads/` folder
-- See the root `README.md` for the complete monorepo workflow
+- Email/password auth works seamlessly in Expo Go.
+- Native Google sign-in needs a proper development build on supported platforms.
+- Prescription submission uses `expo-document-picker` to select local files and uploads the real file binary directly to the backend `uploads/` folder.
+- See the root `README.md` for the complete monorepo workflow and architecture.
