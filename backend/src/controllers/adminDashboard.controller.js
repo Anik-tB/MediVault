@@ -14,7 +14,7 @@ function mapOrderStatus(status) {
 
 exports.getAdminDashboard = async (_req, res) => {
   try {
-    const [statsResult, stockAlertsResult, recentOrdersResult, weeklyResult] = await Promise.all([
+    const [statsResult, stockAlertsResult, recentOrdersResult, weeklyResult, topSellingResult] = await Promise.all([
       db.query(
         `SELECT
            (SELECT COUNT(*) FROM medicines) AS total_medicines,
@@ -63,6 +63,16 @@ exports.getAdminDashboard = async (_req, res) => {
          FROM days
          ORDER BY day_offset`
       ),
+      db.query(
+        `SELECT oi.medicine_name as name, m.category, SUM(oi.quantity) as total_sold
+         FROM order_items oi
+         LEFT JOIN medicines m ON m.id = oi.medicine_id
+         JOIN orders o ON o.id = oi.order_id
+         WHERE o.status != 'rejected'
+         GROUP BY oi.medicine_name, m.category
+         ORDER BY total_sold DESC
+         LIMIT 5`
+      ),
     ]);
 
     const stats = statsResult.rows[0] || {};
@@ -103,6 +113,11 @@ exports.getAdminDashboard = async (_req, res) => {
         orders: Number(row.orders || 0),
         prescriptions: Number(row.prescriptions || 0),
       })),
+      topSellingMedicines: topSellingResult.rows.map((row) => ({
+        name: row.name,
+        category: row.category || 'Uncategorized',
+        soldQuantity: Number(row.total_sold || 0)
+      }))
     });
   } catch (error) {
     return handleAdminError(res, error, 'Internal server error while fetching admin dashboard');

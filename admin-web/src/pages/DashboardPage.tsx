@@ -25,6 +25,13 @@ export function DashboardPage({ onJump }: { onJump: (page: 'inventory' | 'orders
   const stepValue = Math.ceil(maxValue / yAxisSteps) || 1;
   const chartMax = stepValue * yAxisSteps;
   const yAxisLabels = Array.from({ length: yAxisSteps + 1 }, (_, i) => i * stepValue);
+
+  const topSellingData = data.topSellingMedicines || [];
+  const topSellingMax = Math.max(...topSellingData.map(m => m.soldQuantity), 1);
+  const tsStepValue = Math.ceil(topSellingMax / yAxisSteps) || 1;
+  const tsChartMax = tsStepValue * yAxisSteps;
+  const tsYAxisLabels = Array.from({ length: yAxisSteps + 1 }, (_, i) => i * tsStepValue);
+
   const statCards = [
     { icon: '💊', value: data.summary.totalMedicines, label: 'Total Medicines' },
     { icon: '📈', value: data.summary.weeklyActivity, label: 'Weekly Activity' },
@@ -123,6 +130,44 @@ export function DashboardPage({ onJump }: { onJump: (page: 'inventory' | 'orders
           </div>
         </aside>
       </section>
+
+      {topSellingData.length > 0 && (
+        <section className="card" style={{ marginTop: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+            <div>
+              <h2>Top Selling Medicines</h2>
+              <p className="card-subtitle">Most frequently purchased medicines</p>
+            </div>
+          </div>
+          <div className="chart-container">
+            <div className="y-axis">
+              {tsYAxisLabels.map((val) => (
+                <span key={`ts-${val}`}>{val}</span>
+              ))}
+            </div>
+            <div className="chart-inner">
+              <div className="grid-lines">
+                {tsYAxisLabels.map((val) => (
+                  <div key={`ts-grid-${val}`} className="grid-line" />
+                ))}
+              </div>
+              <div className="chart" aria-label="Top selling medicines chart">
+                {topSellingData.map((item) => (
+                  <div className="chart-col" key={item.name}>
+                    <div className="bar-wrap">
+                      <div className="bar-container">
+                        {item.soldQuantity > 0 && <span className="bar-value">{item.soldQuantity}</span>}
+                        <span className="bar" style={{ height: item.soldQuantity === 0 ? '0%' : `${Math.max((item.soldQuantity / tsChartMax) * 100, 4)}%`, background: 'var(--purple)' }} title={`${item.soldQuantity} sold`} />
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 11, textAlign: 'center', marginTop: 4, padding: '0 4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }} title={item.name}>{item.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="card" style={{ marginTop: 20 }}>
         <div className="modal-header">

@@ -70,6 +70,7 @@ export type AdminDashboard = {
   stockAlerts: StockAlert[];
   recentOrders: RecentOrder[];
   weeklyActivity: WeeklyActivity[];
+  topSellingMedicines: { name: string; category: string; soldQuantity: number }[];
 };
 
 export type Medicine = {
