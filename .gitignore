@@ -52,3 +52,6 @@ android/
 .firebase/
 firebase-debug.log*
 ui-debug.log*
+
+# API / Secret Keys
+serviceAccountKey.json
