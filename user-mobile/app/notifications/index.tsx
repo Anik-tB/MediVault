@@ -86,7 +86,7 @@ export default function NotificationsScreen() {
       case 'prescription':
         return { name: 'file-text', color: '#8B5CF6', bgColor: '#EDE9FE' }; // Violet
       case 'system':
-        return { name: 'info', color: '#3B82F6', bgColor: '#DBEAFE' }; // Blue
+        return { name: 'info', color: '#14B8A6', bgColor: '#CCFBF1' }; // Blue
       case 'alert':
         return { name: 'alert-triangle', color: '#F59E0B', bgColor: '#FEF3C7' }; // Amber
       default:
@@ -115,7 +115,7 @@ export default function NotificationsScreen() {
             onPress={markAllAsRead} 
             style={({ pressed }) => [styles.markReadBtn, { opacity: pressed ? 0.7 : 1 }]}
           >
-            <Feather name="check" size={16} color="#2563EB" />
+            <Feather name="check" size={16} color="#0D9488" />
             <Text style={styles.markReadText}>Mark all as read</Text>
           </Pressable>
         </View>
@@ -204,11 +204,11 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     borderRadius: 8,
   },
   markReadText: {
-    color: '#2563EB',
+    color: '#0D9488',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#14B8A6',
   },
   iconBox: {
     width: 44,

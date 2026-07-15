@@ -173,7 +173,7 @@ export default function NotificationsSettingsScreen() {
         <View style={styles.notificationsCard}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderIcon}>
-              <Feather name="bell" size={18} color="#2563EB" />
+              <Feather name="bell" size={18} color="#0D9488" />
             </View>
             <View>
               <Text style={styles.cardHeaderTitle}>Notifications Settings</Text>
@@ -185,7 +185,7 @@ export default function NotificationsSettingsScreen() {
 
           <View style={styles.cardContent}>
             <View style={styles.infoBox}>
-              <Feather name="bell" size={18} color="#2563EB" />
+              <Feather name="bell" size={18} color="#0D9488" />
               <Text style={styles.infoBoxText}>
                 Configure which notifications you receive. Changes apply immediately after
                 saving.
@@ -201,7 +201,7 @@ export default function NotificationsSettingsScreen() {
 
             {isLoading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#2563EB" />
+                <ActivityIndicator size="large" color="#0D9488" />
                 <Text style={styles.loadingText}>Loading your preferences...</Text>
               </View>
             ) : (
@@ -214,7 +214,7 @@ export default function NotificationsSettingsScreen() {
                     </Text>
                   </View>
                   <Switch
-                    trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
+                    trackColor={{ false: '#E2E8F0', true: '#0D9488' }}
                     thumbColor="#FFFFFF"
                     ios_backgroundColor="#E2E8F0"
                     onValueChange={setOrderAlerts}
@@ -232,7 +232,7 @@ export default function NotificationsSettingsScreen() {
                     </Text>
                   </View>
                   <Switch
-                    trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
+                    trackColor={{ false: '#E2E8F0', true: '#0D9488' }}
                     thumbColor="#FFFFFF"
                     ios_backgroundColor="#E2E8F0"
                     onValueChange={setLowStock}
@@ -250,7 +250,7 @@ export default function NotificationsSettingsScreen() {
                     </Text>
                   </View>
                   <Switch
-                    trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
+                    trackColor={{ false: '#E2E8F0', true: '#0D9488' }}
                     thumbColor="#FFFFFF"
                     ios_backgroundColor="#E2E8F0"
                     onValueChange={setExpiryAlerts}
@@ -268,7 +268,7 @@ export default function NotificationsSettingsScreen() {
                     </Text>
                   </View>
                   <Switch
-                    trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
+                    trackColor={{ false: '#E2E8F0', true: '#0D9488' }}
                     thumbColor="#FFFFFF"
                     ios_backgroundColor="#E2E8F0"
                     onValueChange={setWeeklyReports}
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   navItemActive: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
   },
   navIconBox: {
     width: 40,
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   navIconBoxActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#14B8A6',
   },
   navTextContainer: {
     flex: 1,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   navSubtitleActive: {
-    color: '#BFDBFE',
+    color: '#CCFBF1',
   },
   notificationsCard: {
     backgroundColor: Palette.surface,
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
   infoBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
   infoBoxText: {
     flex: 1,
     fontSize: 14,
-    color: '#1D4ED8',
+    color: '#0F766E',
     lineHeight: 20,
     fontWeight: '500',
   },
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

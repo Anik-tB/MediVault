@@ -182,7 +182,7 @@ export default function SecuritySettingsScreen() {
         <View style={styles.securityCard}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderIcon}>
-              <Feather name="lock" size={18} color="#2563EB" />
+              <Feather name="lock" size={18} color="#0D9488" />
             </View>
             <View>
               <Text style={styles.cardHeaderTitle}>Security Settings</Text>
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   navItemActive: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
   },
   navIconBox: {
     width: 40,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   navIconBoxActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#14B8A6',
   },
   navTextContainer: {
     flex: 1,
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   navSubtitleActive: {
-    color: '#BFDBFE',
+    color: '#CCFBF1',
   },
   securityCard: {
     backgroundColor: Palette.surface,
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

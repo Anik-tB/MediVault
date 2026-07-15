@@ -275,7 +275,7 @@ export default function SearchMedicinesScreen() {
                     <View style={styles.headerLeft}>
                       <Text style={styles.medicineName}>{med.name}</Text>
                       <View style={styles.tagContainer}>
-                        <Feather name={med.categoryIcon} size={12} color="#2563EB" />
+                        <Feather name={med.categoryIcon} size={12} color="#0D9488" />
                         <Text style={styles.tagText}>{med.category}</Text>
                       </View>
                     </View>
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   modalUploadBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     paddingVertical: 14,
     borderRadius: 16,
     alignItems: 'center',
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
   tagContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -634,12 +634,12 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#0D9488',
   },
   priceText: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#2563EB',
+    color: '#0D9488',
     marginBottom: 8,
   },
   badgesContainer: {
@@ -740,7 +740,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,

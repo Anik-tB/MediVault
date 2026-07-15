@@ -30,6 +30,7 @@ export default function PrescriptionsSuccessScreen() {
   const [isOrderReserved, setIsOrderReserved] = useState(false);
   const [reserveError, setReserveError] = useState('');
 
+  // Function to reserve the prescription for pickup if it was uploaded from the cart
   const handleReserve = async () => {
     try {
       setIsReserving(true);
@@ -68,6 +69,7 @@ export default function PrescriptionsSuccessScreen() {
         style={styles.mainScroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
+        {/* Top Banner showing success or error state */}
         <View style={[styles.successBanner, isErrorState && styles.errorBanner]}>
           <Feather
             name={isErrorState ? 'alert-circle' : 'check-circle'}
@@ -81,6 +83,7 @@ export default function PrescriptionsSuccessScreen() {
           </Text>
         </View>
 
+        {/* Page Header describing the outcome */}
         <View style={styles.headerSection}>
           <Text style={styles.pageTitle}>
             {isErrorState ? 'Prescription Not Submitted' : 'Prescription Submitted'}
@@ -92,6 +95,7 @@ export default function PrescriptionsSuccessScreen() {
           </Text>
         </View>
 
+        {/* Stepper UI showing the final progress (Step 3: Success) */}
         <View style={styles.stepperCard}>
           <View style={styles.stepperContainer}>
             <View style={[styles.stepCircle, styles.stepCircleCompleted]}>
@@ -110,12 +114,13 @@ export default function PrescriptionsSuccessScreen() {
               <Feather
                 name={isErrorState ? 'alert-circle' : 'shield'}
                 size={20}
-                color={isErrorState ? '#B91C1C' : '#2563EB'}
+                color={isErrorState ? '#B91C1C' : '#0D9488'}
               />
             </View>
           </View>
         </View>
 
+        {/* Main Card showing status, tracking info, and action buttons */}
         <View style={styles.successCard}>
           <View
             style={[
@@ -140,12 +145,13 @@ export default function PrescriptionsSuccessScreen() {
               : 'Your prescription has been recorded and can now be referenced during future pickup reservations.'}
           </Text>
 
+          {/* Info Box showing the tracking reference ID or next steps */}
           <View style={styles.infoBox}>
             <View style={styles.infoIconBox}>
               <Feather
                 name={isErrorState ? 'info' : 'hash'}
                 size={20}
-                color={isErrorState ? '#EF4444' : '#2563EB'}
+                color={isErrorState ? '#EF4444' : '#0D9488'}
               />
             </View>
             <View style={styles.infoTextBox}>
@@ -162,6 +168,7 @@ export default function PrescriptionsSuccessScreen() {
             <Text style={{color: '#EF4444', textAlign: 'center', marginBottom: 16}}>{reserveError}</Text>
           ) : null}
 
+          {/* Bottom buttons to upload another, reserve, or go to orders */}
           <View style={styles.actionButtonsRow}>
             {from !== 'cart' && !isErrorState && !isOrderReserved ? (
               <>
@@ -217,6 +224,7 @@ export default function PrescriptionsSuccessScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Main Layout Styles
   container: {
     flex: 1,
     backgroundColor: Palette.background,
@@ -229,6 +237,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 40,
   },
+  // Top Alert Banner Styles
   successBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -253,6 +262,7 @@ const styles = StyleSheet.create({
   errorBannerText: {
     color: '#B91C1C',
   },
+  // Header Section Styles
   headerSection: {
     marginBottom: 24,
   },
@@ -267,6 +277,7 @@ const styles = StyleSheet.create({
     color: Palette.textSoft,
     lineHeight: 22,
   },
+  // Stepper Progress UI Styles
   stepperCard: {
     backgroundColor: Palette.surface,
     borderRadius: 16,
@@ -291,12 +302,12 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   stepCircleActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563EB',
+    backgroundColor: '#F0FDFA',
+    borderColor: '#0D9488',
   },
   stepCircleCompleted: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+    backgroundColor: '#0D9488',
+    borderColor: '#0D9488',
   },
   stepCircleError: {
     backgroundColor: '#FEF2F2',
@@ -310,8 +321,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   stepDividerActive: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
   },
+  // Main Success/Error Card Styles
   successCard: {
     backgroundColor: Palette.surface,
     borderRadius: 24,
@@ -351,6 +363,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     paddingHorizontal: 8,
   },
+  // Tracking Info Box Styles
   infoBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -364,7 +377,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -382,6 +395,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#94A3B8',
   },
+  // Bottom Action Buttons Styles
   actionButtonsRow: {
     flexDirection: 'row',
     gap: 12,
@@ -405,7 +419,7 @@ const styles = StyleSheet.create({
   },
   goToOrdersBtn: {
     flex: 1,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     borderRadius: 16,
     flexDirection: 'row',
     paddingVertical: 14,

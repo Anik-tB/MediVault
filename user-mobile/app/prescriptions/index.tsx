@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { DashboardHeader, Sidebar } from '@/components/dashboard/DashboardComponents';
 import { fetchPrescriptions, Prescription, PrescriptionStats } from '@/services/prescriptions';
 
+// Helper function to format the status badge colors and labels based on prescription status
 function formatPrescriptionStatus(status: string) {
   if (status === 'submitted') {
     return {
@@ -64,6 +65,8 @@ export default function PrescriptionsScreen() {
   const [loadError, setLoadError] = useState('');
   const slideAnim = useRef(new Animated.Value(0)).current;
 
+  // Function to handle document picking using expo-document-picker
+  // It allows picking JPG, PNG, or PDF files and navigates to the preview screen
   const handlePickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -79,7 +82,7 @@ export default function PrescriptionsScreen() {
           fileSizeBytes: file.size ? file.size.toString() : '0',
           fileUri: file.uri,
         }));
-        
+
         router.push({
           pathname: '/prescriptions/preview',
           params: {
@@ -93,6 +96,7 @@ export default function PrescriptionsScreen() {
     }
   };
 
+  // Fetch prescriptions data and stats from the backend when the screen comes into focus
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
@@ -169,6 +173,7 @@ export default function PrescriptionsScreen() {
         style={styles.mainScroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
+        {/* Page Header Area */}
         <View style={styles.headerSection}>
           <Text style={styles.pageTitle}>Upload Prescription</Text>
           <Text style={styles.pageSubtitle}>
@@ -177,10 +182,11 @@ export default function PrescriptionsScreen() {
           </Text>
         </View>
 
+        {/* Stepper UI showing upload progress */}
         <View style={styles.stepperCard}>
           <View style={styles.stepperContainer}>
             <View style={[styles.stepCircle, styles.stepCircleActive]}>
-              <Feather name="upload-cloud" size={20} color="#2563EB" />
+              <Feather name="upload-cloud" size={20} color="#0D9488" />
             </View>
             <View style={styles.stepDivider} />
             <View style={styles.stepCircle}>
@@ -193,18 +199,20 @@ export default function PrescriptionsScreen() {
           </View>
         </View>
 
+        {/* Summary Cards for Pending, Approved, Rejected prescriptions */}
         <View style={styles.summaryRow}>
           <SummaryCard label="Pending" value={stats.pending} accentColor="#F59E0B" />
           <SummaryCard label="Approved" value={stats.approved} accentColor="#10B981" />
           <SummaryCard label="Rejected" value={stats.rejected} accentColor="#EF4444" />
         </View>
 
+        {/* Upload Box Area where user taps to pick a document */}
         <View style={styles.uploadCard}>
           <Pressable
             style={styles.uploadDashedArea}
             onPress={handlePickDocument}>
             <View style={styles.uploadIconWrapper}>
-              <Feather name="upload-cloud" size={32} color="#2563EB" />
+              <Feather name="upload-cloud" size={32} color="#0D9488" />
             </View>
             <Text style={styles.uploadTitle}>Prepare{'\n'}your{'\n'}prescription</Text>
             <Text style={styles.uploadSubtitle}>
@@ -221,7 +229,7 @@ export default function PrescriptionsScreen() {
                 <Text style={styles.uploadInfoText}>Max{'\n'}5 MB</Text>
               </View>
               <View style={styles.uploadInfoItem}>
-                <Feather name="shield" size={12} color="#2563EB" />
+                <Feather name="shield" size={12} color="#0D9488" />
                 <Text style={styles.uploadInfoText}>Secure{'\n'}submit</Text>
               </View>
             </View>
@@ -234,6 +242,7 @@ export default function PrescriptionsScreen() {
           </View>
         ) : null}
 
+        {/* Recent Submissions List (Shows last 3 prescriptions) */}
         <View style={styles.historyCard}>
           <Text style={styles.historyTitle}>RECENT SUBMISSIONS</Text>
 
@@ -255,7 +264,7 @@ export default function PrescriptionsScreen() {
                     index !== Math.min(prescriptions.length, 3) - 1 && styles.historyRowBorder,
                   ]}>
                   <View style={styles.historyIcon}>
-                    <Feather name="image" size={18} color="#2563EB" />
+                    <Feather name="image" size={18} color="#0D9488" />
                   </View>
                   <View style={styles.historyContent}>
                     <Text style={styles.historyName}>{prescription.fileName}</Text>
@@ -275,6 +284,7 @@ export default function PrescriptionsScreen() {
           )}
         </View>
 
+        {/* Prescription Guidelines section */}
         <View style={styles.guidelinesCard}>
           <Text style={styles.guidelinesTitle}>PRESCRIPTION GUIDELINES</Text>
 
@@ -325,6 +335,7 @@ function SummaryCard({
 }
 
 const styles = StyleSheet.create({
+  // Main Layout Styles
   container: {
     flex: 1,
     backgroundColor: Palette.background,
@@ -337,6 +348,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 40,
   },
+  // Header Section Styles
   headerSection: {
     marginBottom: 24,
   },
@@ -351,6 +363,7 @@ const styles = StyleSheet.create({
     color: Palette.textSoft,
     lineHeight: 22,
   },
+  // Stepper Progress UI Styles
   stepperCard: {
     backgroundColor: Palette.surface,
     borderRadius: 16,
@@ -375,8 +388,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   stepCircleActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563EB',
+    backgroundColor: '#F0FDFA',
+    borderColor: '#0D9488',
   },
   stepDivider: {
     height: 2,
@@ -385,6 +398,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2E8F0',
     marginHorizontal: 12,
   },
+  // Summary Cards Styles (Pending, Approved, Rejected)
   summaryRow: {
     flexDirection: 'row',
     gap: 12,
@@ -409,6 +423,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontWeight: '700',
   },
+  // File Upload Box Styles
   uploadCard: {
     backgroundColor: Palette.surface,
     borderRadius: 24,
@@ -429,7 +444,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 24,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -478,6 +493,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
+  // Recent Submissions History Styles
   historyCard: {
     backgroundColor: Palette.surface,
     borderRadius: 16,
@@ -516,7 +532,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -550,6 +566,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  // Guidelines Section Styles
   guidelinesCard: {
     backgroundColor: '#F8FAFC',
     borderRadius: 16,

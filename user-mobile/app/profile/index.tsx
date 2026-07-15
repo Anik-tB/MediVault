@@ -121,7 +121,7 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
         <LinearGradient
-          colors={['#2563EB', '#1D4ED8']}
+          colors={['#0D9488', '#0F766E']}
           style={styles.heroGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}>
@@ -150,7 +150,7 @@ export default function ProfileScreen() {
 
           {isLoading && !profile ? (
             <View style={styles.loadingCard}>
-              <ActivityIndicator size="large" color="#2563EB" />
+              <ActivityIndicator size="large" color="#0D9488" />
               <Text style={styles.loadingText}>Loading your profile...</Text>
             </View>
           ) : (
@@ -225,7 +225,7 @@ export default function ProfileScreen() {
                   style={styles.actionRow}
                   onPress={() => router.push('/settings' as any)}>
                   <View style={styles.actionIconBox}>
-                    <Feather name="settings" size={18} color="#2563EB" />
+                    <Feather name="settings" size={18} color="#0D9488" />
                   </View>
                   <Text style={styles.actionText}>Account Settings</Text>
                   <Feather name="chevron-right" size={20} color="#CBD5E1" />
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#60A5FA',
+    backgroundColor: '#2DD4BF',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
@@ -298,14 +298,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#1E3A8A',
+    backgroundColor: '#115E59',
     width: 32,
     height: 32,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#2563EB',
+    borderColor: '#0D9488',
   },
   userName: {
     fontSize: 24,
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   },
   userEmail: {
     fontSize: 15,
-    color: '#BFDBFE',
+    color: '#CCFBF1',
     marginBottom: 12,
   },
   roleBadge: {
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,

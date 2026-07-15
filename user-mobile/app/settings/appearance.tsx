@@ -163,7 +163,7 @@ export default function AppearanceSettingsScreen() {
         <View style={styles.appearanceCard}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderIcon}>
-              <Feather name="aperture" size={18} color="#2563EB" />
+              <Feather name="aperture" size={18} color="#0D9488" />
             </View>
             <View>
               <Text style={styles.cardHeaderTitle}>Appearance Settings</Text>
@@ -183,7 +183,7 @@ export default function AppearanceSettingsScreen() {
 
             {isLoading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#2563EB" />
+                <ActivityIndicator size="large" color="#0D9488" />
                 <Text style={styles.loadingText}>Loading appearance settings...</Text>
               </View>
             ) : (
@@ -210,7 +210,7 @@ export default function AppearanceSettingsScreen() {
                         Light
                       </Text>
                       {activeTheme === 'light' ? (
-                        <Feather name="check" size={16} color="#2563EB" style={styles.checkIcon} />
+                        <Feather name="check" size={16} color="#0D9488" style={styles.checkIcon} />
                       ) : null}
                     </Pressable>
 
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   navItemActive: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
   },
   navIconBox: {
     width: 40,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   navIconBoxActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#14B8A6',
   },
   navTextContainer: {
     flex: 1,
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   navSubtitleActive: {
-    color: '#BFDBFE',
+    color: '#CCFBF1',
   },
   appearanceCard: {
     backgroundColor: Palette.surface,
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   themeOptionActive: {
-    borderColor: '#2563EB',
+    borderColor: '#0D9488',
     backgroundColor: '#F8FAFC',
   },
   themePreviewLight: {
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#2563EB',
+    borderColor: '#0D9488',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#EFF6FF',
+    borderColor: '#F0FDFA',
   },
   themePreviewDark: {
     width: 60,
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
   themeOptionTextActive: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#0D9488',
     marginBottom: 8,
   },
   themeOptionComingSoon: {
@@ -553,8 +553,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   densityOptionActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+    backgroundColor: '#0D9488',
+    borderColor: '#0D9488',
   },
   densityOptionText: {
     fontSize: 14,
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

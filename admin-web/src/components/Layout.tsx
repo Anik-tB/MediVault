@@ -1,15 +1,16 @@
 import { useState, type ReactNode } from 'react';
+import { LayoutDashboard, Package, ShoppingCart, FileText, ShieldAlert, Settings, LogOut, Menu } from 'lucide-react';
 import type { StaffProfile } from '../types';
 
 export type PageKey = 'dashboard' | 'inventory' | 'orders' | 'prescriptions' | 'interactions' | 'settings';
 
-const navItems: { key: PageKey; label: string; icon: string }[] = [
-  { key: 'dashboard', label: 'Dashboard', icon: '▦' },
-  { key: 'inventory', label: 'Inventory', icon: '▤' },
-  { key: 'orders', label: 'Orders', icon: '◈' },
-  { key: 'prescriptions', label: 'Prescriptions', icon: '▣' },
-  { key: 'interactions', label: 'Drug Interactions', icon: '⚕' },
-  { key: 'settings', label: 'Settings', icon: '⚙' },
+const navItems: { key: PageKey; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { key: 'inventory', label: 'Inventory', icon: Package },
+  { key: 'orders', label: 'Orders', icon: ShoppingCart },
+  { key: 'prescriptions', label: 'Prescriptions', icon: FileText },
+  { key: 'interactions', label: 'Drug Interactions', icon: ShieldAlert },
+  { key: 'settings', label: 'Settings', icon: Settings },
 ];
 
 export function Layout({
@@ -61,7 +62,7 @@ export function Layout({
               type="button"
               onClick={() => navigate(item.key)}
             >
-              <span>{item.icon}</span>
+              <item.icon size={18} className="nav-icon" />
               {item.label}
             </button>
           ))}
@@ -75,7 +76,10 @@ export function Layout({
             </div>
           </div>
           <small>{staff.role}</small>
-          <button className="ghost-button signout" type="button" onClick={onSignOut}>Sign Out</button>
+          <button className="ghost-button signout" type="button" onClick={onSignOut}>
+            <LogOut size={14} style={{ marginRight: 6 }} />
+            Sign Out
+          </button>
         </div>
       </aside>
       <main className="main">

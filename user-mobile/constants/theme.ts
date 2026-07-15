@@ -1,19 +1,19 @@
 import { Platform } from 'react-native';
 
 export const Palette = {
-  background: '#F4F7FC',
+  background: '#F8FAFC',
   surface: '#FFFFFF',
-  surfaceMuted: '#F7FAFF',
-  primary: '#2563FF',
-  primaryPressed: '#1D53DB',
-  text: '#17213C',
-  textMuted: '#6E7FA1',
-  textSoft: '#94A6C4',
-  label: '#556784',
-  border: '#D8E2F1',
-  borderSoft: '#E9EFF8',
-  shadowSoft: 'rgba(23, 33, 60, 0.08)',
-  disabled: '#D7E0EE',
+  surfaceMuted: '#F1F5F9',
+  primary: '#0D9488',
+  primaryPressed: '#0F766E',
+  text: '#0F172A',
+  textMuted: '#475569',
+  textSoft: '#64748B',
+  label: '#475569',
+  border: '#E2E8F0',
+  borderSoft: '#F1F5F9',
+  shadowSoft: 'rgba(15, 23, 42, 0.04)',
+  disabled: '#CBD5E1',
 };
 
 export const Colors = {
