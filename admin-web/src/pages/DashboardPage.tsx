@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { getDashboard } from '../services/api';
 import type { AdminDashboard } from '../types';
 import { formatDate, formatTime, LoadingState, orderBadge } from '../components/ui';
+import { Shield, Sparkles, TrendingUp, AlertTriangle } from 'lucide-react';
 
 export function DashboardPage({ onJump }: { onJump: (page: 'inventory' | 'orders' | 'prescriptions') => void }) {
   const [data, setData] = useState<AdminDashboard | null>(null);
   const [error, setError] = useState('');
+  const [activeTooltip, setActiveTooltip] = useState<{ x: number; y: number; day: string; orders: number; prescriptions: number } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -24,30 +26,58 @@ export function DashboardPage({ onJump }: { onJump: (page: 'inventory' | 'orders
   const yAxisSteps = 4;
   const stepValue = Math.ceil(maxValue / yAxisSteps) || 1;
   const chartMax = stepValue * yAxisSteps;
-  const yAxisLabels = Array.from({ length: yAxisSteps + 1 }, (_, i) => i * stepValue);
+  const yAxisLabels = Array.from({ length: yAxisSteps + 1 }, (_, i) => i * stepValue).reverse();
 
   const topSellingData = data.topSellingMedicines || [];
   const topSellingMax = Math.max(...topSellingData.map(m => m.soldQuantity), 1);
-  const tsStepValue = Math.ceil(topSellingMax / yAxisSteps) || 1;
-  const tsChartMax = tsStepValue * yAxisSteps;
-  const tsYAxisLabels = Array.from({ length: yAxisSteps + 1 }, (_, i) => i * tsStepValue);
+
+  // SVG dimensions
+  const width = 600;
+  const height = 200;
+  const paddingX = 40;
+  const paddingY = 20;
+
+  // Calculate coordinates for SVG area/line chart
+  const pointsOrders = data.weeklyActivity.map((item, index) => ({
+    x: paddingX + ((width - paddingX * 2) / (data.weeklyActivity.length - 1)) * index,
+    y: height - paddingY - (item.orders / chartMax) * (height - paddingY * 2),
+    day: item.day,
+    orders: item.orders,
+    prescriptions: item.prescriptions
+  }));
+
+  const pointsPrescriptions = data.weeklyActivity.map((item, index) => ({
+    x: paddingX + ((width - paddingX * 2) / (data.weeklyActivity.length - 1)) * index,
+    y: height - paddingY - (item.prescriptions / chartMax) * (height - paddingY * 2),
+    day: item.day,
+    orders: item.orders,
+    prescriptions: item.prescriptions
+  }));
+
+  // Format line paths
+  const pathOrders = pointsOrders.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
+  const areaOrders = pointsOrders.length > 0 ? `${pathOrders} L ${pointsOrders[pointsOrders.length - 1].x} ${height - paddingY} L ${pointsOrders[0].x} ${height - paddingY} Z` : '';
+
+  const pathPres = pointsPrescriptions.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
+  const areaPres = pointsPrescriptions.length > 0 ? `${pathPres} L ${pointsPrescriptions[pointsPrescriptions.length - 1].x} ${height - paddingY} L ${pointsPrescriptions[0].x} ${height - paddingY} Z` : '';
 
   const statCards = [
-    { icon: '💊', value: data.summary.totalMedicines, label: 'Total Medicines' },
-    { icon: '📈', value: data.summary.weeklyActivity, label: 'Weekly Activity' },
-    { icon: '⚠️', value: data.summary.lowStockAlerts, label: 'Low Stock Alerts' },
-    { icon: '⏳', value: data.summary.expiringSoon, label: 'Expiring Soon' },
+    { icon: <Sparkles size={20} color="var(--primary)" />, value: data.summary.totalMedicines, label: 'Total Medicines', desc: 'Catalog size' },
+    { icon: <TrendingUp size={20} color="#0891b2" />, value: data.summary.weeklyOrders, label: 'Weekly Orders', desc: 'Active reservations' },
+    { icon: <AlertTriangle size={20} color="var(--warning)" />, value: data.summary.lowStockAlerts, label: 'Low Stock Alerts', desc: 'Reorder suggested' },
+    { icon: <Shield size={20} color="var(--danger)" />, value: data.summary.expiringSoon, label: 'Expiring Soon', desc: 'Within 90 days' },
   ];
 
   return (
     <>
       <section className="stats-grid">
         {statCards.map((card) => (
-          <article className="card stat-card" key={card.label}>
-            <div className="stat-icon">{card.icon}</div>
+          <article className="card stat-card" key={card.label} style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <div className="stat-icon" style={{ background: 'var(--surface-muted)', borderRadius: '12px', padding: '12px' }}>{card.icon}</div>
             <div>
-              <p className="stat-value">{card.value}</p>
-              <p className="stat-label">{card.label}</p>
+              <p className="stat-value" style={{ fontSize: '24px', fontWeight: 850, margin: 0 }}>{card.value}</p>
+              <p className="stat-label" style={{ fontSize: '13px', color: 'var(--muted)', margin: '4px 0 0', fontWeight: 600 }}>{card.label}</p>
+              <small style={{ fontSize: '11px', color: 'var(--soft)' }}>{card.desc}</small>
             </div>
           </article>
         ))}
@@ -55,7 +85,7 @@ export function DashboardPage({ onJump }: { onJump: (page: 'inventory' | 'orders
 
       <section className="dashboard-grid">
         <article className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
             <div>
               <h2>Weekly Activity</h2>
               <p className="card-subtitle">Orders and prescriptions this week</p>
@@ -66,45 +96,108 @@ export function DashboardPage({ onJump }: { onJump: (page: 'inventory' | 'orders
                 <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 750, marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Orders</div>
               </div>
               <div>
-                <div style={{ fontSize: 24, fontWeight: 850, color: '#60a5fa', lineHeight: 1 }}>{data.summary.weeklyPrescriptions}</div>
+                <div style={{ fontSize: 24, fontWeight: 850, color: '#0891b2', lineHeight: 1 }}>{data.summary.weeklyPrescriptions}</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 750, marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Rx</div>
               </div>
             </div>
           </div>
-          <div className="chart-container">
-            <div className="y-axis">
-              {yAxisLabels.map((val) => (
-                <span key={val}>{val}</span>
+          
+          <div className="chart-container" style={{ position: 'relative', marginTop: 12 }}>
+            <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+              {/* Gradients definition */}
+              <defs>
+                <linearGradient id="orders-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.15" />
+                  <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.00" />
+                </linearGradient>
+                <linearGradient id="pres-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#0891b2" stopOpacity="0.15" />
+                  <stop offset="100%" stopColor="#0891b2" stopOpacity="0.00" />
+                </linearGradient>
+              </defs>
+
+              {/* Grid Lines */}
+              {yAxisLabels.map((val) => {
+                const y = height - paddingY - (val / chartMax) * (height - paddingY * 2);
+                return (
+                  <g key={val}>
+                    <line x1={paddingX} y1={y} x2={width - paddingX} y2={y} stroke="#e2e8f0" strokeDasharray="3,3" strokeWidth={1} />
+                    <text x={paddingX - 10} y={y + 4} textAnchor="end" style={{ fontSize: 10, fill: '#64748b', fontWeight: 650 }}>{val}</text>
+                  </g>
+                );
+              })}
+              
+              {/* Day Labels */}
+              {pointsOrders.map((p, idx) => (
+                <text key={idx} x={p.x} y={height - 2} textAnchor="middle" style={{ fontSize: 10, fill: '#64748b', fontWeight: 650 }}>{p.day}</text>
               ))}
-            </div>
-            <div className="chart-inner">
-              <div className="grid-lines">
-                {yAxisLabels.map((val) => (
-                  <div key={`grid-${val}`} className="grid-line" />
-                ))}
+
+              {/* Shaded Areas */}
+              {areaOrders && <path d={areaOrders} fill="url(#orders-grad)" />}
+              {areaPres && <path d={areaPres} fill="url(#pres-grad)" />}
+
+              {/* Lines */}
+              {pathOrders && <path d={pathOrders} fill="none" stroke="var(--primary)" strokeWidth={2.5} strokeLinecap="round" />}
+              {pathPres && <path d={pathPres} fill="none" stroke="#0891b2" strokeWidth={2.5} strokeLinecap="round" />}
+
+              {/* Interactive Dots */}
+              {pointsOrders.map((p, idx) => (
+                <circle 
+                  key={`ord-dot-${idx}`} 
+                  cx={p.x} 
+                  cy={p.y} 
+                  r={activeTooltip?.day === p.day ? 6 : 4} 
+                  fill="var(--primary)" 
+                  stroke="#ffffff" 
+                  strokeWidth={2}
+                  style={{ cursor: 'pointer', transition: 'r 0.1s' }}
+                  onMouseEnter={() => setActiveTooltip(p)}
+                  onMouseLeave={() => setActiveTooltip(null)}
+                />
+              ))}
+              {pointsPrescriptions.map((p, idx) => (
+                <circle 
+                  key={`pres-dot-${idx}`} 
+                  cx={p.x} 
+                  cy={p.y} 
+                  r={activeTooltip?.day === p.day ? 6 : 4} 
+                  fill="#0891b2" 
+                  stroke="#ffffff" 
+                  strokeWidth={2}
+                  style={{ cursor: 'pointer', transition: 'r 0.1s' }}
+                  onMouseEnter={() => setActiveTooltip(p)}
+                  onMouseLeave={() => setActiveTooltip(null)}
+                />
+              ))}
+            </svg>
+            
+            {/* Tooltip Overlay */}
+            {activeTooltip && (
+              <div style={{
+                position: 'absolute',
+                left: `${(activeTooltip.x / width) * 100}%`,
+                top: `${(activeTooltip.y / height) * 100 - 32}%`,
+                transform: 'translateX(-50%)',
+                background: '#0f172a',
+                color: '#ffffff',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                pointerEvents: 'none',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                zIndex: 10,
+                whiteSpace: 'nowrap'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{activeTooltip.day}</div>
+                <div>Orders: {activeTooltip.orders}</div>
+                <div>Rx Checked: {activeTooltip.prescriptions}</div>
               </div>
-              <div className="chart" aria-label="Weekly activity chart">
-                {data.weeklyActivity.map((item) => (
-                  <div className="chart-col" key={item.day}>
-                    <div className="bar-wrap">
-                      <div className="bar-container">
-                        {item.orders > 0 && <span className="bar-value">{item.orders}</span>}
-                        <span className="bar" style={{ height: item.orders === 0 ? '0%' : `${Math.max((item.orders / chartMax) * 100, 4)}%` }} title={`${item.orders} orders`} />
-                      </div>
-                      <div className="bar-container">
-                        {item.prescriptions > 0 && <span className="bar-value">{item.prescriptions}</span>}
-                        <span className="bar secondary" style={{ height: item.prescriptions === 0 ? '0%' : `${Math.max((item.prescriptions / chartMax) * 100, 4)}%` }} title={`${item.prescriptions} prescriptions`} />
-                      </div>
-                    </div>
-                    <span>{item.day}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
-          <div className="legend">
-            <span><i className="dot" />Orders</span>
-            <span><i className="dot secondary" />Prescriptions</span>
+          
+          <div className="legend" style={{ marginTop: 16 }}>
+            <span><i className="dot" style={{ backgroundColor: 'var(--primary)' }} />Orders</span>
+            <span><i className="dot secondary" style={{ backgroundColor: '#0891b2' }} />Prescriptions</span>
           </div>
         </article>
 
@@ -133,38 +226,23 @@ export function DashboardPage({ onJump }: { onJump: (page: 'inventory' | 'orders
 
       {topSellingData.length > 0 && (
         <section className="card" style={{ marginTop: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-            <div>
-              <h2>Top Selling Medicines</h2>
-              <p className="card-subtitle">Most frequently purchased medicines</p>
-            </div>
+          <div>
+            <h2>Top Selling Medicines</h2>
+            <p className="card-subtitle">Most frequently purchased medicines</p>
           </div>
-          <div className="chart-container">
-            <div className="y-axis">
-              {tsYAxisLabels.map((val) => (
-                <span key={`ts-${val}`}>{val}</span>
-              ))}
-            </div>
-            <div className="chart-inner">
-              <div className="grid-lines">
-                {tsYAxisLabels.map((val) => (
-                  <div key={`ts-grid-${val}`} className="grid-line" />
-                ))}
-              </div>
-              <div className="chart" aria-label="Top selling medicines chart">
-                {topSellingData.map((item) => (
-                  <div className="chart-col" key={item.name}>
-                    <div className="bar-wrap">
-                      <div className="bar-container">
-                        {item.soldQuantity > 0 && <span className="bar-value">{item.soldQuantity}</span>}
-                        <span className="bar" style={{ height: item.soldQuantity === 0 ? '0%' : `${Math.max((item.soldQuantity / tsChartMax) * 100, 4)}%`, background: 'var(--purple)' }} title={`${item.soldQuantity} sold`} />
-                      </div>
-                    </div>
-                    <span style={{ fontSize: 11, textAlign: 'center', marginTop: 4, padding: '0 4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }} title={item.name}>{item.name}</span>
+          <div style={{ display: 'grid', gap: '16px', marginTop: '24px' }}>
+            {topSellingData.map((item) => {
+              const percent = (item.soldQuantity / topSellingMax) * 100;
+              return (
+                <div key={item.name} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 50px', alignItems: 'center', gap: '16px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 650, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.name}>{item.name}</span>
+                  <div style={{ height: '8px', background: 'var(--border-soft)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ width: `${percent}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary) 0%, #0891b2 100%)', borderRadius: '4px' }} />
                   </div>
-                ))}
-              </div>
-            </div>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--muted)', textAlign: 'right' }}>{item.soldQuantity}</span>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}

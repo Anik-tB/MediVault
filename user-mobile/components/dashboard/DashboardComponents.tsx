@@ -35,7 +35,7 @@ export function DashboardHeader({ onOpenSidebar, title = 'Dashboard' }: Dashboar
       </View>
 
       <View style={DashboardHeaderStyles.right}>
-        <Pressable 
+        <Pressable
           style={({ pressed }) => [DashboardHeaderStyles.iconBtn, { opacity: pressed ? 0.7 : 1 }]}
           onPress={() => router.push('/notifications' as any)}
         >
@@ -99,7 +99,7 @@ const DashboardHeaderStyles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#2563EB', // Blue matching screenshot
+    backgroundColor: '#0D9488', // Blue matching screenshot
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -154,7 +154,7 @@ export function WelcomeBanner({
       <Pressable
         style={({ pressed }) => [WelcomeBannerStyles.button, { opacity: pressed ? 0.8 : 1 }]}
         onPress={() => router.push('/search_medicine')}>
-        <Feather name="search" size={18} color="#2563EB" />
+        <Feather name="search" size={18} color="#0D9488" />
         <Text style={WelcomeBannerStyles.buttonText}>Browse Medicines</Text>
       </Pressable>
     </View>
@@ -163,19 +163,19 @@ export function WelcomeBanner({
 
 const WelcomeBannerStyles = StyleSheet.create({
   container: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     borderRadius: 20,
     padding: 24,
     marginHorizontal: 20,
     marginTop: 20,
-    shadowColor: '#2563EB',
+    shadowColor: '#0D9488',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
   },
   date: {
-    color: '#93C5FD',
+    color: '#99F6E4',
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
@@ -187,7 +187,7 @@ const WelcomeBannerStyles = StyleSheet.create({
     marginBottom: 12,
   },
   subtitle: {
-    color: '#DBEAFE',
+    color: '#CCFBF1',
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 20,
@@ -208,7 +208,7 @@ const WelcomeBannerStyles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   buttonText: {
-    color: '#2563EB',
+    color: '#0D9488',
     fontSize: 15,
     fontWeight: '700',
   },
@@ -252,8 +252,8 @@ export function StatsGrid({ summary, isLoading = false }: StatsGridProps) {
       icon: 'shopping-cart',
       value: summary.cartItems,
       label: 'Cart Items',
-      iconColor: '#3B82F6',
-      iconBg: '#DBEAFE',
+      iconColor: '#14B8A6',
+      iconBg: '#CCFBF1',
     },
     {
       icon: 'file-text',
@@ -361,7 +361,7 @@ export function QuickActions() {
           icon="search"
           title="Search Medicines"
           subtitle="Browse formulary"
-          bgColor="#2563EB" // Blue
+          bgColor="#0D9488" // Blue
           onPress={() => router.push('/search_medicine')}
         />
         <ActionButton
@@ -394,7 +394,7 @@ function ActionButton({ icon, title, subtitle, bgColor, onPress }: any) {
   return (
     <Pressable
       style={({ pressed }) => [
-        QuickActionsStyles.actionBtn, 
+        QuickActionsStyles.actionBtn,
         { backgroundColor: bgColor, opacity: pressed ? 0.8 : 1 }
       ]}
       onPress={onPress}
@@ -492,14 +492,14 @@ export function RecentOrders({ orders, isLoading = false }: RecentOrdersProps) {
           style={({ pressed }) => [RecentOrdersStyles.viewAllBtn, { opacity: pressed ? 0.7 : 1 }]}
           onPress={() => router.push('/orders')}>
           <Text style={RecentOrdersStyles.viewAllText}>View all</Text>
-          <Feather name="arrow-right" size={14} color="#2563EB" />
+          <Feather name="arrow-right" size={14} color="#0D9488" />
         </Pressable>
       </View>
 
       <View style={RecentOrdersStyles.listContainer}>
         {isLoading ? (
           <View style={RecentOrdersStyles.emptyState}>
-            <ActivityIndicator size="small" color="#2563EB" />
+            <ActivityIndicator size="small" color="#0D9488" />
             <Text style={RecentOrdersStyles.emptyText}>Loading recent orders...</Text>
           </View>
         ) : orders.length === 0 ? (
@@ -521,7 +521,7 @@ export function RecentOrders({ orders, isLoading = false }: RecentOrdersProps) {
                     <Feather name="loader" size={20} color="#F59E0B" />
                   ) : null}
                   {displayStatus === 'Ready for Pickup' ? (
-                    <Feather name="package" size={20} color="#3B82F6" />
+                    <Feather name="package" size={20} color="#14B8A6" />
                   ) : null}
                   {displayStatus === 'Completed' ? (
                     <Feather name="check-circle" size={20} color="#10B981" />
@@ -556,9 +556,9 @@ function StatusBadge({ status }: { status: string }) {
     textColor = '#B45309';
     dotColor = '#F59E0B';
   } else if (status === 'Ready for Pickup') {
-    bgColor = '#DBEAFE';
-    textColor = '#1D4ED8';
-    dotColor = '#3B82F6';
+    bgColor = '#CCFBF1';
+    textColor = '#0F766E';
+    dotColor = '#14B8A6';
   } else if (status === 'Completed') {
     bgColor = '#D1FAE5';
     textColor = '#047857';
@@ -601,7 +601,7 @@ const RecentOrdersStyles = StyleSheet.create({
     gap: 4,
   },
   viewAllText: {
-    color: '#2563EB',
+    color: '#0D9488',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -725,7 +725,7 @@ export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
             </View>
           </View>
           <Pressable onPress={onClose} style={SidebarStyles.closeBtn}>
-            <Feather name="x" size={24} color={Palette.surface} />
+            <Feather name="x" size={24} color={Palette.text} />
           </Pressable>
         </View>
 
@@ -789,8 +789,8 @@ export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
             </View>
           </View>
 
-          <Pressable 
-            style={SidebarStyles.signOutBtn} 
+          <Pressable
+            style={SidebarStyles.signOutBtn}
             onPress={async () => {
               try {
                 await signOutUser();
@@ -800,10 +800,10 @@ export function Sidebar({ isOpen, onClose, slideAnim }: SidebarProps) {
                 Alert.alert('Sign Out Error', 'Failed to sign out. Please try again.');
               }
             }}>
-            <Feather name="log-out" size={18} color="#94A3B8" />
+            <Feather name="log-out" size={18} color="#EF4444" />
             <Text style={SidebarStyles.signOutText}>Sign Out</Text>
             <View style={{ flex: 1 }} />
-            <Feather name="arrow-right" size={16} color="#94A3B8" />
+            <Feather name="arrow-right" size={16} color="#EF4444" />
           </Pressable>
         </View>
 
@@ -822,9 +822,9 @@ interface NavItemProps {
 function NavItem({ icon, label, active = false, onPress }: NavItemProps) {
   return (
     <Pressable style={[SidebarStyles.navItem, active && SidebarStyles.navItemActive]} onPress={onPress}>
-      <Feather name={icon} size={20} color={active ? Palette.surface : '#94A3B8'} />
+      <Feather name={icon} size={20} color={active ? Palette.primary : Palette.textSoft} />
       <Text style={[SidebarStyles.navItemText, active && SidebarStyles.navItemTextActive]}>{label}</Text>
-      {active && <Feather name="chevron-right" size={18} color={Palette.surface} style={{ marginLeft: 'auto' }} />}
+      {active && <Feather name="chevron-right" size={18} color={Palette.primary} style={{ marginLeft: 'auto' }} />}
     </Pressable>
   );
 }
@@ -847,14 +847,16 @@ const SidebarStyles = StyleSheet.create({
     width: '80%',
     maxWidth: 320,
     height: '100%',
-    backgroundColor: '#1E40AF', // Deep blue from screenshot
+    backgroundColor: Palette.surface,
     paddingTop: 50,
     paddingHorizontal: 24,
-    shadowColor: '#000',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+    borderRightWidth: 1,
+    borderRightColor: Palette.borderSoft,
   },
   header: {
     flexDirection: 'row',
@@ -871,17 +873,17 @@ const SidebarStyles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#3B82F6',
+    backgroundColor: Palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoTitle: {
-    color: Palette.surface,
+    color: Palette.text,
     fontSize: 18,
     fontWeight: '800',
   },
   logoSubtitle: {
-    color: '#93C5FD',
+    color: Palette.primary,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
@@ -892,7 +894,7 @@ const SidebarStyles = StyleSheet.create({
   portalBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2563EB',
+    backgroundColor: Palette.primary,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -906,7 +908,7 @@ const SidebarStyles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   navHeader: {
-    color: '#93C5FD',
+    color: Palette.textSoft,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.5,
@@ -924,21 +926,23 @@ const SidebarStyles = StyleSheet.create({
     gap: 16,
   },
   navItemActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#F0FDFA',
   },
   navItemText: {
-    color: '#94A3B8',
+    color: Palette.textMuted,
     fontSize: 15,
     fontWeight: '500',
   },
   navItemTextActive: {
-    color: Palette.surface,
+    color: Palette.primary,
     fontWeight: '600',
   },
   footer: {
     marginBottom: 40,
-    backgroundColor: '#1E3A8A',
+    backgroundColor: Palette.surfaceMuted,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Palette.borderSoft,
     overflow: 'hidden',
   },
   userInfo: {
@@ -951,7 +955,7 @@ const SidebarStyles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#3B82F6',
+    backgroundColor: Palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -961,12 +965,12 @@ const SidebarStyles = StyleSheet.create({
     fontWeight: '700',
   },
   userName: {
-    color: Palette.surface,
+    color: Palette.text,
     fontSize: 15,
     fontWeight: '600',
   },
   userEmail: {
-    color: '#93C5FD',
+    color: Palette.textSoft,
     fontSize: 12,
   },
   signOutBtn: {
@@ -974,12 +978,12 @@ const SidebarStyles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#2563EB',
+    borderTopColor: Palette.borderSoft,
     gap: 12,
   },
   signOutText: {
-    color: '#94A3B8',
+    color: '#EF4444',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });
