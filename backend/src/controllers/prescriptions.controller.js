@@ -22,6 +22,9 @@ function mapPrescriptionRow(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     usableForOrders: row.status !== 'rejected',
+    patientName: row.patient_name || '',
+    patientEmail: row.patient_email || '',
+    medicinesText: row.medicines_text || '',
   };
 }
 
@@ -117,6 +120,10 @@ exports.createPrescription = async (req, res) => {
 
     const storageUrl = publicUrl;
 
+    const patientName = req.body.patientName || userRecord.full_name || req.user.email.split('@')[0];
+    const patientEmail = req.body.patientEmail || req.user.email;
+    const medicinesText = req.body.medicinesText || '';
+
     const result = await db.query(
       `INSERT INTO prescriptions (
          user_id,
@@ -126,21 +133,12 @@ exports.createPrescription = async (req, res) => {
          storage_url,
          status,
          patient_name,
-         patient_email
+         patient_email,
+         medicines_text
        )
-       VALUES ($1, $2, $3, $4, $5, 'submitted', $6, $7)
-       RETURNING
-         id,
-         file_name,
-         file_type,
-         file_size_bytes,
-         storage_url,
-         status,
-         review_notes,
-         reviewed_at,
-         created_at,
-         updated_at`,
-      [req.user.firebase_uid, fileName, fileType, fileSizeBytes, storageUrl, userRecord.full_name || req.user.email.split('@')[0], req.user.email]
+       VALUES ($1, $2, $3, $4, $5, 'submitted', $6, $7, $8)
+       RETURNING *`,
+      [req.user.firebase_uid, fileName, fileType, fileSizeBytes, storageUrl, patientName, patientEmail, medicinesText]
     );
 
     return res.status(201).json({
