@@ -38,6 +38,7 @@ export default function CartScreen() {
           available: item.available,
           quantity: item.quantity,
           price: Number(item.price || 0),
+          allergyWarning: item.allergy_warning || null,
         }));
         setCartItems(mapped);
       } catch (err: any) {
@@ -130,7 +131,7 @@ export default function CartScreen() {
       
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#0D9488" />
           <Text style={styles.loadingText}>Loading your cart...</Text>
         </View>
       ) : error ? (
@@ -150,7 +151,7 @@ export default function CartScreen() {
           <View style={styles.headerRow}>
             <View style={styles.headerTitleContainer}>
               <View style={styles.cartIconContainer}>
-                <Feather name="shopping-cart" size={24} color="#2563EB" />
+                <Feather name="shopping-cart" size={24} color="#0D9488" />
               </View>
               <View>
                 <Text style={styles.pageTitle}>My Cart</Text>
@@ -171,7 +172,7 @@ export default function CartScreen() {
           /* Empty State Card */
           <View style={styles.emptyCard}>
             <View style={styles.emptyIconWrapper}>
-              <Feather name="shopping-cart" size={48} color="#93C5FD" />
+              <Feather name="shopping-cart" size={48} color="#99F6E4" />
             </View>
             
             <Text style={styles.emptyTitle}>Your cart is empty</Text>
@@ -191,13 +192,30 @@ export default function CartScreen() {
           /* Populated State */
           <View style={styles.populatedContainer}>
             
+            {cartItems.some(item => item.allergyWarning) && (
+              <View style={styles.allergyWarningBox}>
+                <Feather name="alert-triangle" size={18} color="#DC2626" style={styles.alertIcon} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.allergyWarningTitle}>Allergy Warning</Text>
+                  {cartItems.filter(item => item.allergyWarning).map((item) => (
+                    <Text key={item.id} style={styles.allergyWarningText}>
+                      • {item.allergyWarning}
+                    </Text>
+                  ))}
+                  <Text style={styles.allergyWarningFooter}>
+                    Checkout is disabled. Please remove the conflicting items to proceed.
+                  </Text>
+                </View>
+              </View>
+            )}
+            
             {/* Cart Items List */}
             <View style={styles.cartItemsList}>
               {cartItems.map((item) => (
                 <View key={item.id} style={styles.cartItemCard}>
                   <View style={styles.cartItemTopRow}>
                     <View style={styles.itemIconWrapper}>
-                      <Feather name="package" size={20} color="#2563EB" />
+                      <Feather name="package" size={20} color="#0D9488" />
                     </View>
                     <View style={styles.itemInfo}>
                       <View style={styles.itemTitleRow}>
@@ -226,7 +244,7 @@ export default function CartScreen() {
                       </Pressable>
                       <Text style={styles.qtyValue}>{item.quantity}</Text>
                       <Pressable style={styles.qtyBtnPlus} onPress={() => handleUpdateQuantity(item.id, item.quantity + 1)}>
-                        <Feather name="plus" size={16} color="#2563EB" />
+                        <Feather name="plus" size={16} color="#0D9488" />
                       </Pressable>
                     </View>
                   </View>
@@ -265,7 +283,7 @@ export default function CartScreen() {
               
               {cartItems.some(item => item.rxRequired) && (
                 <View style={styles.alertBox}>
-                  <Feather name="check-circle" size={16} color="#2563EB" style={styles.alertIcon} />
+                  <Feather name="check-circle" size={16} color="#0D9488" style={styles.alertIcon} />
                   <Text style={styles.alertText}>
                     Some items require a prescription. Please upload before pickup.
                   </Text>
@@ -273,9 +291,12 @@ export default function CartScreen() {
               )}
               
               <Pressable 
-                style={[styles.primaryButton, isReserving && { opacity: 0.7 }]}
+                style={[
+                  styles.primaryButton, 
+                  (isReserving || cartItems.some(item => item.allergyWarning)) && styles.disabledButton
+                ]}
                 onPress={handleReserveForPickup}
-                disabled={isReserving}
+                disabled={isReserving || cartItems.some(item => item.allergyWarning)}
               >
                 {isReserving ? (
                   <ActivityIndicator size="small" color="#FFF" />
@@ -327,7 +348,7 @@ export default function CartScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalIconWrapper}>
-              <Feather name="file-text" size={32} color="#3B82F6" />
+              <Feather name="file-text" size={32} color="#14B8A6" />
             </View>
             <Text style={styles.modalTitle}>Prescription Required</Text>
             <Text style={styles.modalMessage}>
@@ -428,7 +449,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -474,7 +495,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   modalUploadBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     paddingVertical: 14,
     borderRadius: 16,
     alignItems: 'center',
@@ -565,7 +586,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -620,7 +641,7 @@ const styles = StyleSheet.create({
   browseButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 16,
@@ -653,7 +674,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -674,15 +695,15 @@ const styles = StyleSheet.create({
     color: Palette.text,
   },
   rxBadge: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#CCFBF1',
   },
   rxBadgeText: {
-    color: '#2563EB',
+    color: '#0D9488',
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -723,7 +744,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#CCFBF1',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -815,7 +836,7 @@ const styles = StyleSheet.create({
   },
   alertBox: {
     flexDirection: 'row',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDFA',
     padding: 16,
     borderRadius: 12,
     marginTop: 8,
@@ -829,15 +850,50 @@ const styles = StyleSheet.create({
   alertText: {
     flex: 1,
     fontSize: 13,
-    color: '#1E3A8A',
+    color: '#115E59',
     fontWeight: '500',
     lineHeight: 20,
+  },
+  allergyWarningBox: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF2F2',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    marginBottom: 20,
+    alignItems: 'flex-start',
+  },
+  allergyWarningTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#991B1B',
+    marginBottom: 6,
+  },
+  allergyWarningText: {
+    fontSize: 13,
+    color: '#B91C1C',
+    lineHeight: 18,
+    fontWeight: '600',
+    marginLeft: 4,
+    marginBottom: 4,
+  },
+  allergyWarningFooter: {
+    fontSize: 12,
+    color: '#7F1D1D',
+    marginTop: 6,
+    fontStyle: 'italic',
+    fontWeight: '500',
+  },
+  disabledButton: {
+    backgroundColor: '#CBD5E1',
+    opacity: 0.8,
   },
   primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     paddingVertical: 16,
     borderRadius: 16,
     gap: 8,

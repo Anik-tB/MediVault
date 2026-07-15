@@ -1,5 +1,23 @@
 const db = require('../config/db');
 
+function checkAllergy(medicineName, allergiesText) {
+  if (!allergiesText || !medicineName) return null;
+  const keywords = allergiesText.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  const medLower = medicineName.toLowerCase();
+  for (const keyword of keywords) {
+    if (keyword === 'penicillin' && (medLower.includes('amoxicillin') || medLower.includes('cefuroxime') || medLower.includes('penicillin'))) {
+      return 'Penicillin (cross-reactive with ' + medicineName + ')';
+    }
+    if (keyword === 'nsaid' && (medLower.includes('ibuprofen') || medLower.includes('aspirin') || medLower.includes('diclofenac'))) {
+      return 'NSAID (matches ' + medicineName + ')';
+    }
+    if (medLower.includes(keyword)) {
+      return keyword;
+    }
+  }
+  return null;
+}
+
 // GET /api/v1/orders/:orderId — Fetch medicines for a specific order
 exports.getOrderDetails = async (req, res) => {
   try {
@@ -186,6 +204,25 @@ exports.reserveForPickup = async (req, res) => {
         message: `Interaction Warning: Cannot complete reservation due to a ${conflict.severity} interaction between ${conflict.medicine_a_name} and ${conflict.medicine_b_name}. ${conflict.clinical_description}`,
         clinicalDescription: conflict.clinical_description
       });
+    }
+
+    // Allergy Safety Check
+    const userRes = await client.query('SELECT allergies FROM users WHERE firebase_uid = $1', [user_id]);
+    const allergiesText = userRes.rows[0]?.allergies || '';
+    
+    if (allergiesText) {
+      for (const item of cartResult.rows) {
+        const allergyConflict = checkAllergy(item.medicine_name, allergiesText);
+        if (allergyConflict) {
+          await client.query('ROLLBACK');
+          return res.status(409).json({
+            error: 'Allergy Warning',
+            severity: 'severe',
+            message: `Allergy Conflict: Cannot complete reservation. ${item.medicine_name} matches your allergy profile (${allergyConflict}). Please review your cart.`,
+            clinicalDescription: `Patient is allergic to ${allergyConflict}. Concomitant dispensing of ${item.medicine_name} is contraindicated.`
+          });
+        }
+      }
     }
 
     let linkedPrescriptionId = null;

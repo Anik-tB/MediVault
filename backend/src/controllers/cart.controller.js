@@ -1,5 +1,23 @@
 const db = require('../config/db');
 
+function checkAllergy(medicineName, allergiesText) {
+  if (!allergiesText || !medicineName) return null;
+  const keywords = allergiesText.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  const medLower = medicineName.toLowerCase();
+  for (const keyword of keywords) {
+    if (keyword === 'penicillin' && (medLower.includes('amoxicillin') || medLower.includes('cefuroxime') || medLower.includes('penicillin'))) {
+      return 'Penicillin (cross-reactive with ' + medicineName + ')';
+    }
+    if (keyword === 'nsaid' && (medLower.includes('ibuprofen') || medLower.includes('aspirin') || medLower.includes('diclofenac'))) {
+      return 'NSAID (matches ' + medicineName + ')';
+    }
+    if (medLower.includes(keyword)) {
+      return keyword;
+    }
+  }
+  return null;
+}
+
 exports.addToCart = async (req, res) => {
   try {
     const { medicine_id, quantity = 1 } = req.body;
@@ -106,7 +124,18 @@ exports.getCart = async (req, res) => {
     
     const result = await db.query(query, [user_id]);
 
-    res.status(200).json(result.rows);
+    const userRes = await db.query('SELECT allergies FROM users WHERE firebase_uid = $1', [user_id]);
+    const allergiesText = userRes.rows[0]?.allergies || '';
+
+    const cartItems = result.rows.map(item => {
+      const matchedAllergy = checkAllergy(item.name, allergiesText);
+      return {
+        ...item,
+        allergy_warning: matchedAllergy ? `Allergy Warning: Contains ingredients matching your allergy profile (${matchedAllergy}).` : null
+      };
+    });
+
+    res.status(200).json(cartItems);
   } catch (error) {
     console.error('Error fetching cart:', error);
     res.status(500).json({ error: 'Internal server error while fetching cart' });
