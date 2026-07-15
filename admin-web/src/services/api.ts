@@ -149,6 +149,10 @@ export async function getOrders(params: { search?: string; status?: string } = {
   return apiFetch<OrderListResponse>(`/admin/orders?${query.toString()}`);
 }
 
+export async function prepareOrder(id: number) {
+  return apiFetch<{ message: string }>(`/admin/orders/${id}/prepare`, { method: 'PATCH' });
+}
+
 export async function approveOrder(id: number, pickupTime: string) {
   return apiFetch<{ message: string }>(`/admin/orders/${id}/approve`, {
     method: 'PATCH',

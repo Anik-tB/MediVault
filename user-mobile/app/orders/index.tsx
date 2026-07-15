@@ -8,6 +8,32 @@ import { getOrders, getOrderDetails, cancelOrder } from '@/services/orders';
 
 
 
+const TimelineStep = ({ title, desc, isDone, isActive, isLast }: { title: string; desc: string; isDone: boolean; isActive: boolean; isLast: boolean }) => {
+  return (
+    <View style={{ flexDirection: 'row', minHeight: 45 }}>
+      <View style={{ alignItems: 'center', marginRight: 12 }}>
+        <View style={{
+          width: 18,
+          height: 18,
+          borderRadius: 9,
+          backgroundColor: isDone ? '#0D9488' : '#FFFFFF',
+          borderWidth: 2,
+          borderColor: isDone ? '#0D9488' : isActive ? '#0D9488' : '#CBD5E1',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          {isDone && <Feather name="check" size={10} color="#FFFFFF" />}
+        </View>
+        {!isLast && <View style={{ width: 2, flex: 1, backgroundColor: isDone ? '#0D9488' : '#E2E8F0', marginVertical: 2 }} />}
+      </View>
+      <View style={{ paddingBottom: 12 }}>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: isDone || isActive ? '#0F172A' : '#94A3B8' }}>{title}</Text>
+        <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{desc}</Text>
+      </View>
+    </View>
+  );
+};
+
 export default function OrdersScreen() {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -89,12 +115,19 @@ export default function OrdersScreen() {
           bgColor: '#FEF3C7',
           borderColor: '#FDE68A',
         };
+      case 'Preparing':
+        return {
+          icon: 'activity',
+          color: '#8B5CF6',
+          bgColor: '#F5F3FF',
+          borderColor: '#DDD6FE',
+        };
       case 'Ready for Pickup':
         return {
           icon: 'package',
-          color: '#2563EB',
-          bgColor: '#EFF6FF',
-          borderColor: '#BFDBFE',
+          color: '#0D9488',
+          bgColor: '#F0FDFA',
+          borderColor: '#CCFBF1',
         };
       case 'Completed':
         return {
@@ -148,9 +181,9 @@ export default function OrdersScreen() {
               <Text style={[styles.statNumber, { color: '#D97706' }]}>{stats.pending}</Text>
               <Text style={[styles.statLabel, { color: '#D97706' }]}>Pending</Text>
             </View>
-            <View style={[styles.statCard, { borderColor: '#BFDBFE', backgroundColor: '#EFF6FF' }]}>
-              <Text style={[styles.statNumber, { color: '#2563EB' }]}>{stats.ready}</Text>
-              <Text style={[styles.statLabel, { color: '#2563EB' }]}>Ready</Text>
+            <View style={[styles.statCard, { borderColor: '#CCFBF1', backgroundColor: '#F0FDFA' }]}>
+              <Text style={[styles.statNumber, { color: '#0D9488' }]}>{stats.ready}</Text>
+              <Text style={[styles.statLabel, { color: '#0D9488' }]}>Ready</Text>
             </View>
             <View style={[styles.statCard, { borderColor: '#A7F3D0', backgroundColor: '#ECFDF5' }]}>
               <Text style={[styles.statNumber, { color: '#059669' }]}>{stats.completed}</Text>
@@ -162,7 +195,7 @@ export default function OrdersScreen() {
         {/* Orders List */}
         {isLoading ? (
           <View style={{ alignItems: 'center', paddingTop: 40 }}>
-            <ActivityIndicator size="large" color="#2563EB" />
+            <ActivityIndicator size="large" color="#0D9488" />
           </View>
         ) : orders.length === 0 ? (
           <View style={{ alignItems: 'center', paddingTop: 40 }}>
@@ -175,6 +208,7 @@ export default function OrdersScreen() {
             // Map backend status to display label
             const statusLabel =
               order.status === 'pending_pickup' ? 'Pending' :
+              order.status === 'preparing' ? 'Preparing' :
               order.status === 'ready_for_pickup' ? 'Ready for Pickup' :
               order.status === 'completed' ? 'Completed' : order.status;
             const config = getStatusConfig(statusLabel);
@@ -223,12 +257,49 @@ export default function OrdersScreen() {
                   <View style={styles.expandedPanel}>
                     {(itemsCache[order.id] || []).map((item: any, idx: number) => (
                       <View key={idx} style={styles.expandedRow}>
-                        <Feather name="package" size={14} color="#2563EB" />
+                        <Feather name="package" size={14} color="#0D9488" />
                         <Text style={styles.expandedName}>{item.medicine_name}</Text>
                         <Text style={styles.expandedPrice}>৳ {Number(item.unit_price || 0).toFixed(2)}</Text>
                         <Text style={styles.expandedQty}>×{item.quantity}</Text>
                       </View>
                     ))}
+
+                    {/* Visual Status Timeline Tracker */}
+                    <View style={{ marginVertical: 18, padding: 16, backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1, borderColor: '#F1F5F9' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: '#475569', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Order Status Tracker</Text>
+                      
+                      <TimelineStep 
+                        title="Order Placed" 
+                        desc="Your reservation has been received." 
+                        isDone={true} 
+                        isActive={order.status === 'pending_pickup'} 
+                        isLast={false} 
+                      />
+                      
+                      <TimelineStep 
+                        title="Dispensary Preparing" 
+                        desc="Our pharmacist is preparing your items." 
+                        isDone={['preparing', 'ready_for_pickup', 'completed'].includes(order.status)} 
+                        isActive={order.status === 'preparing'} 
+                        isLast={false} 
+                      />
+                      
+                      <TimelineStep 
+                        title="Ready for Collection" 
+                        desc="Items are ready to pick up at the counter." 
+                        isDone={['ready_for_pickup', 'completed'].includes(order.status)} 
+                        isActive={order.status === 'ready_for_pickup'} 
+                        isLast={false} 
+                      />
+                      
+                      <TimelineStep 
+                        title="Picked Up & Completed" 
+                        desc="Order has been collected and finalized." 
+                        isDone={order.status === 'completed'} 
+                        isActive={order.status === 'completed'} 
+                        isLast={true} 
+                      />
+                    </View>
 
                     {order.status === 'pending_pickup' && (
                       <Pressable 
@@ -301,7 +372,7 @@ const styles = StyleSheet.create({
   newOrderButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0D9488',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -360,7 +431,7 @@ const styles = StyleSheet.create({
   orderId: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#2563EB',
+    color: '#0D9488',
   },
   statusBadge: {
     flexDirection: 'row',
@@ -424,7 +495,7 @@ const styles = StyleSheet.create({
   expandedQty: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#0D9488',
   },
   cancelButton: {
     flexDirection: 'row',

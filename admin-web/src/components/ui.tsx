@@ -14,6 +14,7 @@ export function stockBadge(status: StockStatus) {
 export function orderBadge(status: OrderStatus) {
   if (status === 'completed') return <Badge tone="success">Completed</Badge>;
   if (status === 'ready_for_pickup') return <Badge tone="primary">Ready for Pickup</Badge>;
+  if (status === 'preparing') return <Badge tone="purple">Preparing</Badge>;
   if (status === 'rejected') return <Badge tone="danger">Rejected</Badge>;
   return <Badge tone="warning">Pending</Badge>;
 }

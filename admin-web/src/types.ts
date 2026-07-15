@@ -1,4 +1,4 @@
-export type OrderStatus = 'pending_pickup' | 'ready_for_pickup' | 'completed' | 'rejected';
+export type OrderStatus = 'pending_pickup' | 'preparing' | 'ready_for_pickup' | 'completed' | 'rejected';
 export type RxStatus = 'pending' | 'approved' | 'rejected';
 export type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
 export type Severity = 'mild' | 'moderate' | 'severe';

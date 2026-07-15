@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { approveOrder, getOrders, markOrderPickedUp, rejectOrder, verifyOrderPrescription } from '../services/api';
+import { approveOrder, getOrders, markOrderPickedUp, rejectOrder, verifyOrderPrescription, prepareOrder } from '../services/api';
 import type { Order, OrderListResponse, OrderStatus, PrescriptionVerificationResult, PrescriptionVerificationStatus } from '../types';
 import { formatDate, formatDateTime, formatTime, LoadingState, Modal, orderBadge } from '../components/ui';
 
 const statusOptions: { label: string; value: '' | OrderStatus }[] = [
   { label: 'All Orders', value: '' },
   { label: 'Pending', value: 'pending_pickup' },
+  { label: 'Preparing', value: 'preparing' as any },
   { label: 'Ready for Pickup', value: 'ready_for_pickup' },
   { label: 'Completed', value: 'completed' },
   { label: 'Rejected', value: 'rejected' },
@@ -90,6 +91,16 @@ export function OrdersPage({ notify, onJump }: { notify: (message: string, tone?
     }
   };
 
+  const startPreparing = async (order: Order) => {
+    try {
+      const response = await prepareOrder(order.id);
+      notify(response.message);
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Unable to start preparation', 'error');
+    }
+  };
+
   const pickup = async (order: Order) => {
     try {
       const response = await markOrderPickedUp(order.id);
@@ -144,6 +155,7 @@ export function OrdersPage({ notify, onJump }: { notify: (message: string, tone?
           <div className="page-tabs" style={{ marginBottom: 18 }}>
             <span className="badge neutral">{data.stats.total} total</span>
             <span className="badge warning">{data.stats.pending} pending</span>
+            <span className="badge purple">{(data.stats as any).preparing || 0} preparing</span>
             <span className="badge primary">{data.stats.ready} ready</span>
             <span className="badge success">{data.stats.completed} completed</span>
             <span className="badge danger">{data.stats.rejected} rejected</span>
@@ -165,7 +177,13 @@ export function OrdersPage({ notify, onJump }: { notify: (message: string, tone?
                     {order.status === 'pending_pickup' ? (
                       <>
                         <button className="danger-button" type="button" onClick={() => setRejectingOrder(order)}>Reject</button>
-                        <button className="primary-button" type="button" onClick={() => setApprovingOrder(order)}>Approve</button>
+                        <button className="primary-button" type="button" onClick={() => startPreparing(order)}>Start Preparing</button>
+                      </>
+                    ) : null}
+                    {order.status === 'preparing' ? (
+                      <>
+                        <button className="danger-button" type="button" onClick={() => setRejectingOrder(order)}>Reject</button>
+                        <button className="primary-button" type="button" onClick={() => setApprovingOrder(order)}>Mark Ready</button>
                       </>
                     ) : null}
                     {order.status === 'ready_for_pickup' ? (
@@ -210,6 +228,12 @@ export function OrdersPage({ notify, onJump }: { notify: (message: string, tone?
                   </span>
                 </div>
                 <p className="description" style={{ marginBottom: 12 }}>Admin must review this prescription before final approval.</p>
+                {((selectedOrder as any).prescriptionPatientName || (selectedOrder as any).prescriptionMedicinesText) ? (
+                  <div style={{ background: 'rgba(255,255,255,0.6)', padding: 12, borderRadius: 8, marginBottom: 12, fontSize: 13, border: '1px solid rgba(0,0,0,0.05)', color: 'var(--text)' }}>
+                    <div style={{ marginBottom: 6 }}><strong>OCR Extracted Patient:</strong> {(selectedOrder as any).prescriptionPatientName}</div>
+                    <div><strong>OCR Extracted Medicines:</strong> {(selectedOrder as any).prescriptionMedicinesText}</div>
+                  </div>
+                ) : null}
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   <a 
                     href={selectedOrder.prescriptionUrl} 

@@ -30,6 +30,7 @@ router.delete('/medicines/:medicineId', adminMedicinesController.deleteMedicine)
 
 router.get('/orders', adminOrdersController.getAdminOrders);
 router.post('/orders/:orderId/verify-prescription', adminOrdersController.verifyOrderPrescription);
+router.patch('/orders/:orderId/prepare', adminOrdersController.prepareOrder);
 router.patch('/orders/:orderId/approve', adminOrdersController.approveOrder);
 router.patch('/orders/:orderId/reject', adminOrdersController.rejectOrder);
 router.patch('/orders/:orderId/pickup', adminOrdersController.markPickedUp);

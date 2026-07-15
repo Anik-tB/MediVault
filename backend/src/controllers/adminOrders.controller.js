@@ -42,6 +42,8 @@ function mapOrder(row) {
     prescriptionId: row.prescription_id,
     prescriptionUrl: resolveStorageUrl(row.prescription_url),
     prescriptionStatus: row.prescription_status,
+    prescriptionPatientName: row.prescription_patient_name || '',
+    prescriptionMedicinesText: row.prescription_medicines_text || '',
   };
 }
 
@@ -77,6 +79,8 @@ exports.getAdminOrders = async (req, res) => {
          o.prescription_id,
          p.storage_url AS prescription_url,
          p.status AS prescription_status,
+         p.patient_name AS prescription_patient_name,
+         p.medicines_text AS prescription_medicines_text,
          COUNT(oi.id) AS items_count,
          COALESCE(SUM(oi.quantity), 0) AS total_units,
          COALESCE(STRING_AGG(oi.medicine_name, ', ' ORDER BY oi.id), p.medicines_text, 'No medicines') AS medicines,
@@ -114,6 +118,7 @@ exports.getAdminOrders = async (req, res) => {
       stats: {
         total: orders.length,
         pending: orders.filter((order) => order.status === 'pending_pickup').length,
+        preparing: orders.filter((order) => order.status === 'preparing').length,
         ready: orders.filter((order) => order.status === 'ready_for_pickup').length,
         completed: orders.filter((order) => order.status === 'completed').length,
         rejected: orders.filter((order) => order.status === 'rejected').length,
@@ -195,6 +200,48 @@ exports.verifyOrderPrescription = async (req, res) => {
   }
 };
 
+exports.prepareOrder = async (req, res) => {
+  const client = await db.pool.connect();
+  try {
+    const orderId = normalizeInteger(req.params.orderId, { fieldName: 'Order ID', min: 1 });
+
+    await client.query('BEGIN');
+
+    const orderRes = await client.query(`SELECT user_id, status FROM orders WHERE id = $1`, [orderId]);
+    if (orderRes.rowCount === 0) {
+      throw new AdminValidationError('Order not found');
+    }
+    const order = orderRes.rows[0];
+
+    const result = await client.query(
+      `UPDATE orders
+       SET status = 'preparing', updated_at = NOW()
+       WHERE id = $1 AND status = 'pending_pickup'
+       RETURNING id`,
+      [orderId]
+    );
+
+    if (result.rowCount === 0) {
+      throw new AdminValidationError('Order cannot be prepared from its current state');
+    }
+
+    // Add Notification
+    await client.query(
+      `INSERT INTO notifications (user_id, type, title, message) VALUES ($1, 'order_update', 'Order Preparing', $2)`,
+      [order.user_id, `Your order ORD-${String(orderId).padStart(4, '0')} is now being prepared by our dispensary staff.`]
+    );
+
+    await client.query('COMMIT');
+
+    return res.status(200).json({ message: `Order ORD-${String(orderId).padStart(4, '0')} is now being prepared` });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    return handleAdminError(res, error, 'Internal server error while preparing order');
+  } finally {
+    client.release();
+  }
+};
+
 exports.approveOrder = async (req, res) => {
   const client = await db.pool.connect();
   try {
@@ -221,7 +268,7 @@ exports.approveOrder = async (req, res) => {
     const result = await client.query(
       `UPDATE orders
        SET status = 'ready_for_pickup', pickup_time = $1, rejection_reason = NULL, updated_at = NOW()
-       WHERE id = $2 AND status IN ('pending_pickup', 'rejected')
+       WHERE id = $2 AND status IN ('pending_pickup', 'preparing', 'rejected')
        RETURNING id`,
       [parsedPickupTime, orderId]
     );
